@@ -130,6 +130,11 @@ public sealed class TrayApplicationContext : ApplicationContext
         var settingsItem = new ToolStripMenuItem("Settings...");
         settingsItem.Click += (_, _) => ShowSettings();
         menu.Items.Add(settingsItem);
+
+        var aboutItem = new ToolStripMenuItem("About...");
+        aboutItem.Click += (_, _) => ShowAbout();
+        menu.Items.Add(aboutItem);
+
         menu.Items.Add(new ToolStripSeparator());
         var exitItem = new ToolStripMenuItem("Exit");
         exitItem.Click += (_, _) => ExitApplication();
@@ -183,6 +188,74 @@ public sealed class TrayApplicationContext : ApplicationContext
             _mouseHook.Install();
         else
             _mouseHook.Uninstall();
+    }
+
+    private void ShowAbout()
+    {
+        var version = System.Reflection.Assembly.GetExecutingAssembly().GetName().Version;
+        var ver = version != null ? $"{version.Major}.{version.Minor}.{version.Build}" : "1.0.0";
+
+        using var dlg = new Form
+        {
+            Text = "About LLM-Rephraser",
+            ClientSize = new Size(360, 200),
+            FormBorderStyle = FormBorderStyle.FixedDialog,
+            MaximizeBox = false,
+            MinimizeBox = false,
+            StartPosition = FormStartPosition.CenterScreen,
+            Font = new Font("Segoe UI", 9f),
+            Icon = _trayIcon.Icon
+        };
+
+        var title = new Label
+        {
+            Text = "LLM-Rephraser",
+            Location = new Point(20, 16),
+            AutoSize = true,
+            Font = new Font("Segoe UI", 14f, FontStyle.Bold)
+        };
+
+        var versionLabel = new Label
+        {
+            Text = $"Version {ver}",
+            Location = new Point(22, 48),
+            AutoSize = true,
+            ForeColor = SystemColors.GrayText
+        };
+
+        var desc = new Label
+        {
+            Text = "A Windows system tray tool for rephrasing,\ntranslating, and fixing text in any application\nusing LLM APIs.",
+            Location = new Point(22, 76),
+            Size = new Size(320, 50)
+        };
+
+        var link = new LinkLabel
+        {
+            Text = "github.com/davidturchak/LLM-rephraser",
+            Location = new Point(22, 130),
+            AutoSize = true
+        };
+        link.LinkClicked += (_, _) =>
+        {
+            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+            {
+                FileName = "https://github.com/davidturchak/LLM-rephraser",
+                UseShellExecute = true
+            });
+        };
+
+        var okButton = new Button
+        {
+            Text = "OK",
+            Location = new Point(268, 164),
+            Size = new Size(75, 28),
+            DialogResult = DialogResult.OK
+        };
+
+        dlg.Controls.AddRange([title, versionLabel, desc, link, okButton]);
+        dlg.AcceptButton = okButton;
+        dlg.ShowDialog();
     }
 
     private void ShowSettings()
