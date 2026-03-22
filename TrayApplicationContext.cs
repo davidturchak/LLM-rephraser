@@ -269,23 +269,28 @@ public sealed class TrayApplicationContext : ApplicationContext
         _cts = new CancellationTokenSource();
 
         string suggestion;
+        var sw = System.Diagnostics.Stopwatch.StartNew();
         try
         {
             // Show loading feedback
             _trayIcon.ShowBalloonTip(1500, "LLM-Rephraser", $"Rephrasing ({config.ActiveProfile})...", ToolTipIcon.None);
 
+            AppLogger.LogRequest(profile.ApiEndpoint, profile.ModelName, styleName, selectedText);
             suggestion = await _llmClient.SendAsync(profile, prompt, selectedText, _cts.Token);
+            sw.Stop();
+            AppLogger.LogResponse(styleName, suggestion, sw.Elapsed);
         }
         catch (OperationCanceledException)
         {
+            sw.Stop();
             if (_cts?.IsCancellationRequested == true)
             {
-                // User-initiated cancellation
+                AppLogger.LogError(styleName, "Cancelled by user", sw.Elapsed);
                 RestoreClipboard(savedClipboard);
                 _isBusy = false;
                 return;
             }
-            // HTTP timeout
+            AppLogger.LogError(styleName, "Request timed out", sw.Elapsed);
             MessageBox.Show("Request timed out. Check your API endpoint and try again.",
                 "LLM-Rephraser", MessageBoxButtons.OK, MessageBoxIcon.Warning);
             RestoreClipboard(savedClipboard);
@@ -294,6 +299,8 @@ public sealed class TrayApplicationContext : ApplicationContext
         }
         catch (LlmException ex)
         {
+            sw.Stop();
+            AppLogger.LogError(styleName, ex.Message, sw.Elapsed);
             MessageBox.Show(ex.Message, "LLM-Rephraser — API Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
             RestoreClipboard(savedClipboard);
             _isBusy = false;
@@ -301,6 +308,8 @@ public sealed class TrayApplicationContext : ApplicationContext
         }
         catch (Exception ex)
         {
+            sw.Stop();
+            AppLogger.LogError(styleName, ex.Message, sw.Elapsed);
             MessageBox.Show($"Unexpected error:\n{ex.Message}", "LLM-Rephraser", MessageBoxButtons.OK, MessageBoxIcon.Error);
             RestoreClipboard(savedClipboard);
             _isBusy = false;
