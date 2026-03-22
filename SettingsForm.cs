@@ -196,7 +196,22 @@ public sealed class SettingsForm : Form
         _createProfileButton.Click += CreateProfileFromModel_Click;
         _modelListView.SelectedIndexChanged += (_, _) => _createProfileButton.Enabled = _modelListView.SelectedItems.Count > 0;
 
-        openRouterTab.Controls.AddRange([orDescription, _fetchButton, _orStatusLabel, searchLabel, _orSearchBox, _modelListView, _createProfileButton]);
+        var orKeyLink = new LinkLabel
+        {
+            Text = "Get your OpenRouter API key",
+            Location = new Point(8, 466),
+            AutoSize = true
+        };
+        orKeyLink.LinkClicked += (_, _) =>
+        {
+            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+            {
+                FileName = "https://openrouter.ai/workspaces/default/keys",
+                UseShellExecute = true
+            });
+        };
+
+        openRouterTab.Controls.AddRange([orDescription, _fetchButton, _orStatusLabel, searchLabel, _orSearchBox, _modelListView, _createProfileButton, orKeyLink]);
 
         tabControl.TabPages.Add(settingsTab);
         tabControl.TabPages.Add(openRouterTab);
