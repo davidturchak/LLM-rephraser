@@ -6,10 +6,10 @@ set -e
 # ──────────────────────────────────────────────
 #
 #  Usage:
-#    ./build-release.sh patch    # 1.1.0 → 1.1.1
-#    ./build-release.sh minor    # 1.1.0 → 1.2.0
-#    ./build-release.sh major    # 1.1.0 → 2.0.0
-#    ./build-release.sh          # defaults to patch
+#    ./build-release.sh "Fixed a bug"         # patch bump (default)
+#    ./build-release.sh "New feature" minor    # minor bump
+#    ./build-release.sh "Breaking change" major # major bump
+#    ./build-release.sh                        # auto patch + generic message
 #
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
@@ -17,9 +17,16 @@ cd "$SCRIPT_DIR"
 
 CSPROJ="LLM-Rephraser.csproj"
 WXS="Installer/Product.wxs"
-BUMP_TYPE="${1:-patch}"
+COMMIT_MSG="${1:-}"
+BUMP_TYPE="${2:-patch}"
 
-# ── 1. Read current version from csproj ──
+# ── 1. Check for changes ──
+if git diff --quiet HEAD && [ -z "$(git ls-files --others --exclude-standard)" ]; then
+    echo "No changes to commit."
+    exit 0
+fi
+
+# ── 2. Read current version from csproj ──
 CURRENT=$(grep -oP '(?<=<Version>)[^<]+' "$CSPROJ")
 if [ -z "$CURRENT" ]; then
     echo "ERROR: Could not read <Version> from $CSPROJ"
@@ -27,9 +34,8 @@ if [ -z "$CURRENT" ]; then
 fi
 
 IFS='.' read -r MAJOR MINOR PATCH <<< "$CURRENT"
-echo "Current version: $CURRENT"
 
-# ── 2. Bump version ──
+# ── 3. Bump version ──
 case "$BUMP_TYPE" in
     major) MAJOR=$((MAJOR + 1)); MINOR=0; PATCH=0 ;;
     minor) MINOR=$((MINOR + 1)); PATCH=0 ;;
@@ -41,30 +47,25 @@ case "$BUMP_TYPE" in
 esac
 
 NEW_VERSION="$MAJOR.$MINOR.$PATCH"
-echo "New version:     $NEW_VERSION"
+echo "$CURRENT → $NEW_VERSION ($BUMP_TYPE)"
 
-# ── 3. Update version in csproj ──
+# ── 4. Update version in csproj and WiX ──
 sed -i "s|<Version>$CURRENT</Version>|<Version>$NEW_VERSION</Version>|" "$CSPROJ"
-echo "Updated $CSPROJ"
-
-# ── 4. Update version in WiX installer ──
 sed -i "s|Version=\"$CURRENT.0\"|Version=\"$NEW_VERSION.0\"|" "$WXS"
-echo "Updated $WXS"
 
 # ── 5. Build ──
-echo ""
-echo "Building Release..."
+echo "Building..."
 dotnet build -c Release -v quiet
 
 # ── 6. Publish self-contained ──
-echo "Publishing self-contained single file..."
+echo "Publishing..."
 dotnet publish -c Release -r win-x64 --self-contained \
     -p:PublishSingleFile=true \
     -p:IncludeNativeLibrariesForSelfExtract=true \
     -v quiet
 
 # ── 7. Build MSI ──
-echo "Building MSI installer..."
+echo "Packaging MSI..."
 cd Installer
 wix build Product.wxs \
     -ext WixToolset.UI.wixext \
@@ -72,13 +73,16 @@ wix build Product.wxs \
     -o LLM-Rephraser.msi \
     -arch x64
 cd ..
-echo "MSI built: Installer/LLM-Rephraser.msi"
 
-# ── 8. Git commit & push ──
-echo ""
-echo "Committing and pushing..."
+# ── 8. Generate commit message ──
+if [ -z "$COMMIT_MSG" ]; then
+    COMMIT_MSG="v$NEW_VERSION"
+fi
+
+# ── 9. Commit, tag, push ──
+echo "Pushing v$NEW_VERSION..."
 git add -A
-git commit -m "Release v$NEW_VERSION
+git commit -m "$COMMIT_MSG (v$NEW_VERSION)
 
 Co-Authored-By: Claude Opus 4.6 (1M context) <noreply@anthropic.com>"
 
@@ -86,6 +90,4 @@ git tag "v$NEW_VERSION"
 git push origin main --tags
 
 echo ""
-echo "════════════════════════════════════════"
-echo "  Released v$NEW_VERSION successfully!"
-echo "════════════════════════════════════════"
+echo "✓ v$NEW_VERSION released and pushed."
