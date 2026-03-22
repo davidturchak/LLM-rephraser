@@ -23,10 +23,8 @@
     <!-- UI: install dir dialog set -->
     <ui:WixUI Id="WixUI_InstallDir" InstallDirectory="INSTALLFOLDER" />
 
-    <!-- Launch app after install via cmd /c start -->
-    <SetProperty Id="LAUNCHCMD" Value="&quot;[INSTALLFOLDER]LLM-Rephraser.exe&quot;"
-                 Sequence="execute" Before="LaunchApp" />
-    <CustomAction Id="LaunchApp" Property="LAUNCHCMD" ExeCommand=""
+    <!-- Launch app after install -->
+    <CustomAction Id="LaunchApp" FileRef="LLMRephraser.exe" ExeCommand=""
                   Impersonate="yes" Return="asyncNoWait" />
     <InstallExecuteSequence>
       <Custom Action="LaunchApp" After="InstallFinalize"
