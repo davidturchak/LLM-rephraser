@@ -52,7 +52,7 @@ public sealed class TrayApplicationContext : ApplicationContext
     ];
 
     private static string TranslationPrompt(string lang) =>
-        $"You are a translator. Translate the user's text into {lang}. Preserve the original tone and meaning. Return ONLY the translated text, nothing else.";
+        $"You are a writing assistant and translator. Translate the user's text into {lang}, and rephrase it to sound natural and fluent in {lang} — not like a literal translation. Preserve the original meaning and tone. Return ONLY the translated and rephrased text, nothing else.";
 
     public TrayApplicationContext()
     {
