@@ -1,13 +1,18 @@
 using System;
+using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
+using System.Net.Http;
+using System.Text.Json;
 using System.Threading;
+using System.Threading.Tasks;
 using System.Windows.Forms;
 
 namespace LlmRephraser;
 
 public sealed class SettingsForm : Form
 {
+    // ── Settings tab fields ──
     private readonly ComboBox _profileBox;
     private readonly Button _addButton;
     private readonly Button _renameButton;
@@ -23,6 +28,17 @@ public sealed class SettingsForm : Form
     private readonly ListBox _langListBox;
     private readonly Button _langAddButton;
     private readonly Button _langRemoveButton;
+
+    // ── OpenRouter tab fields ──
+    private readonly ListView _modelListView;
+    private readonly Button _fetchButton;
+    private readonly Button _createProfileButton;
+    private readonly Label _orStatusLabel;
+    private readonly TextBox _orSearchBox;
+    private List<OpenRouterModel> _allModels = [];
+    private List<OpenRouterModel> _filteredModels = [];
+
+    // ── Bottom buttons ──
     private readonly Button _saveButton;
     private readonly Button _cancelButton;
 
@@ -40,21 +56,31 @@ public sealed class SettingsForm : Form
         _config = config;
 
         Text = "LLM-Rephraser Settings";
-        ClientSize = new Size(484, 532);
+        ClientSize = new Size(520, 560);
         FormBorderStyle = FormBorderStyle.FixedDialog;
         MaximizeBox = false;
         MinimizeBox = false;
         StartPosition = FormStartPosition.CenterScreen;
         Font = new Font("Segoe UI", 9f);
-        Padding = new Padding(12);
+
+        var tabControl = new TabControl
+        {
+            Location = new Point(8, 8),
+            Size = new Size(504, 510),
+            Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right | AnchorStyles.Bottom
+        };
+
+        // ════════════════════════════════════════
+        //  TAB 1: Settings
+        // ════════════════════════════════════════
+        var settingsTab = new TabPage("Settings") { Padding = new Padding(4) };
 
         // ── Profile GroupBox ──
         var profileGroup = new GroupBox
         {
             Text = "Profile",
-            Location = new Point(12, 8),
-            Size = new Size(460, 60),
-            Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right
+            Location = new Point(8, 8),
+            Size = new Size(480, 60)
         };
 
         _profileBox = new ComboBox
@@ -65,28 +91,13 @@ public sealed class SettingsForm : Form
         };
         _profileBox.SelectedIndexChanged += ProfileBox_Changed;
 
-        _addButton = new Button
-        {
-            Text = "New...",
-            Location = new Point(242, 23),
-            Size = new Size(65, 25)
-        };
+        _addButton = new Button { Text = "New...", Location = new Point(242, 23), Size = new Size(65, 25) };
         _addButton.Click += AddProfile_Click;
 
-        _renameButton = new Button
-        {
-            Text = "Rename...",
-            Location = new Point(313, 23),
-            Size = new Size(72, 25)
-        };
+        _renameButton = new Button { Text = "Rename...", Location = new Point(313, 23), Size = new Size(72, 25) };
         _renameButton.Click += RenameProfile_Click;
 
-        _deleteButton = new Button
-        {
-            Text = "Delete",
-            Location = new Point(391, 23),
-            Size = new Size(57, 25)
-        };
+        _deleteButton = new Button { Text = "Delete", Location = new Point(391, 23), Size = new Size(57, 25) };
         _deleteButton.Click += DeleteProfile_Click;
 
         profileGroup.Controls.AddRange([_profileBox, _addButton, _renameButton, _deleteButton]);
@@ -95,215 +106,242 @@ public sealed class SettingsForm : Form
         var connectionGroup = new GroupBox
         {
             Text = "Connection",
-            Location = new Point(12, 76),
-            Size = new Size(460, 222),
-            Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right
+            Location = new Point(8, 76),
+            Size = new Size(480, 222)
         };
 
-        var providerLabel = new Label
-        {
-            Text = "&Provider:",
-            Location = new Point(12, 24),
-            Size = new Size(100, 17),
-            TextAlign = ContentAlignment.MiddleLeft
-        };
-
-        _providerBox = new ComboBox
-        {
-            DropDownStyle = ComboBoxStyle.DropDownList,
-            Location = new Point(120, 22),
-            Size = new Size(326, 23)
-        };
-        foreach (var (label, _, _, _) in Providers)
-            _providerBox.Items.Add(label);
+        var providerLabel = new Label { Text = "&Provider:", Location = new Point(12, 24), Size = new Size(100, 17), TextAlign = ContentAlignment.MiddleLeft };
+        _providerBox = new ComboBox { DropDownStyle = ComboBoxStyle.DropDownList, Location = new Point(120, 22), Size = new Size(346, 23) };
+        foreach (var (label, _, _, _) in Providers) _providerBox.Items.Add(label);
         _providerBox.SelectedIndexChanged += ProviderBox_Changed;
 
-        var endpointLabel = new Label
-        {
-            Text = "&Endpoint URL:",
-            Location = new Point(12, 58),
-            Size = new Size(100, 17),
-            TextAlign = ContentAlignment.MiddleLeft
-        };
+        var endpointLabel = new Label { Text = "&Endpoint URL:", Location = new Point(12, 58), Size = new Size(100, 17), TextAlign = ContentAlignment.MiddleLeft };
+        _endpointBox = new TextBox { Location = new Point(120, 56), Size = new Size(346, 23) };
 
-        _endpointBox = new TextBox
-        {
-            Location = new Point(120, 56),
-            Size = new Size(326, 23)
-        };
+        var apiKeyLabel = new Label { Text = "API &Key:", Location = new Point(12, 92), Size = new Size(100, 17), TextAlign = ContentAlignment.MiddleLeft };
+        _apiKeyBox = new TextBox { Location = new Point(120, 90), Size = new Size(346, 23), UseSystemPasswordChar = true };
+        var apiKeyHint = new Label { Text = "Leave blank if not required", Location = new Point(120, 115), AutoSize = true, ForeColor = SystemColors.GrayText, Font = new Font("Segoe UI", 8f) };
 
-        var apiKeyLabel = new Label
-        {
-            Text = "API &Key:",
-            Location = new Point(12, 92),
-            Size = new Size(100, 17),
-            TextAlign = ContentAlignment.MiddleLeft
-        };
+        var modelLabel = new Label { Text = "&Model:", Location = new Point(12, 140), Size = new Size(100, 17), TextAlign = ContentAlignment.MiddleLeft };
+        _modelBox = new TextBox { Location = new Point(120, 138), Size = new Size(346, 23) };
 
-        _apiKeyBox = new TextBox
-        {
-            Location = new Point(120, 90),
-            Size = new Size(326, 23),
-            UseSystemPasswordChar = true
-        };
-
-        var apiKeyHint = new Label
-        {
-            Text = "Leave blank if not required",
-            Location = new Point(120, 115),
-            AutoSize = true,
-            ForeColor = SystemColors.GrayText,
-            Font = new Font("Segoe UI", 8f)
-        };
-
-        var modelLabel = new Label
-        {
-            Text = "&Model:",
-            Location = new Point(12, 140),
-            Size = new Size(100, 17),
-            TextAlign = ContentAlignment.MiddleLeft
-        };
-
-        _modelBox = new TextBox
-        {
-            Location = new Point(120, 138),
-            Size = new Size(326, 23)
-        };
-
-        // ── Test section inside connection group ──
-        var separator = new Label
-        {
-            BorderStyle = BorderStyle.Fixed3D,
-            Location = new Point(12, 178),
-            Size = new Size(436, 2)
-        };
-
-        _testButton = new Button
-        {
-            Text = "&Test Connection",
-            Location = new Point(12, 192),
-            Size = new Size(120, 28)
-        };
+        var separator = new Label { BorderStyle = BorderStyle.Fixed3D, Location = new Point(12, 178), Size = new Size(456, 2) };
+        _testButton = new Button { Text = "&Test Connection", Location = new Point(12, 192), Size = new Size(120, 28) };
         _testButton.Click += TestButton_Click;
+        _testResultLabel = new Label { Text = "", Location = new Point(140, 198), Size = new Size(326, 17), TextAlign = ContentAlignment.MiddleLeft };
 
-        _testResultLabel = new Label
-        {
-            Text = "",
-            Location = new Point(140, 198),
-            Size = new Size(306, 17),
-            TextAlign = ContentAlignment.MiddleLeft
-        };
+        connectionGroup.Controls.AddRange([providerLabel, _providerBox, endpointLabel, _endpointBox, apiKeyLabel, _apiKeyBox, apiKeyHint, modelLabel, _modelBox, separator, _testButton, _testResultLabel]);
 
-        connectionGroup.Controls.AddRange([
-            providerLabel, _providerBox,
-            endpointLabel, _endpointBox,
-            apiKeyLabel, _apiKeyBox, apiKeyHint,
-            modelLabel, _modelBox,
-            separator, _testButton, _testResultLabel
-        ]);
-
-        // ── Translation Languages GroupBox ──
-        var langGroup = new GroupBox
-        {
-            Text = "Translation Languages",
-            Location = new Point(12, 306),
-            Size = new Size(460, 100),
-            Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right
-        };
-
-        _langListBox = new ListBox
-        {
-            Location = new Point(12, 20),
-            Size = new Size(360, 68),
-            SelectionMode = SelectionMode.One
-        };
-        foreach (var lang in _config.TranslationLanguages)
-            _langListBox.Items.Add(lang);
-
-        _langAddButton = new Button
-        {
-            Text = "Add...",
-            Location = new Point(380, 20),
-            Size = new Size(68, 25)
-        };
+        // ── Translation Languages ──
+        var langGroup = new GroupBox { Text = "Translation Languages", Location = new Point(8, 306), Size = new Size(480, 100) };
+        _langListBox = new ListBox { Location = new Point(12, 20), Size = new Size(376, 68), SelectionMode = SelectionMode.One };
+        foreach (var lang in _config.TranslationLanguages) _langListBox.Items.Add(lang);
+        _langAddButton = new Button { Text = "Add...", Location = new Point(396, 20), Size = new Size(72, 25) };
         _langAddButton.Click += LangAdd_Click;
-
-        _langRemoveButton = new Button
-        {
-            Text = "Remove",
-            Location = new Point(380, 50),
-            Size = new Size(68, 25)
-        };
+        _langRemoveButton = new Button { Text = "Remove", Location = new Point(396, 50), Size = new Size(72, 25) };
         _langRemoveButton.Click += LangRemove_Click;
-
         langGroup.Controls.AddRange([_langListBox, _langAddButton, _langRemoveButton]);
 
-        // ── Options GroupBox ──
-        var optionsGroup = new GroupBox
-        {
-            Text = "Options",
-            Location = new Point(12, 414),
-            Size = new Size(460, 72),
-            Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right
-        };
-
-        _shiftRightClickBox = new CheckBox
-        {
-            Text = "Enable Shift+Right-Click to open style picker",
-            Location = new Point(12, 20),
-            AutoSize = true,
-            Checked = _config.ShiftRightClickEnabled
-        };
-
-        _startWithWindowsBox = new CheckBox
-        {
-            Text = "Start LLM-Rephraser with Windows",
-            Location = new Point(12, 44),
-            AutoSize = true,
-            Checked = AppConfig.ReadStartWithWindows()
-        };
-
+        // ── Options ──
+        var optionsGroup = new GroupBox { Text = "Options", Location = new Point(8, 414), Size = new Size(480, 62) };
+        _shiftRightClickBox = new CheckBox { Text = "Enable Shift+Right-Click to open style picker", Location = new Point(12, 18), AutoSize = true, Checked = _config.ShiftRightClickEnabled };
+        _startWithWindowsBox = new CheckBox { Text = "Start LLM-Rephraser with Windows", Location = new Point(12, 40), AutoSize = true, Checked = AppConfig.ReadStartWithWindows() };
         optionsGroup.Controls.AddRange([_shiftRightClickBox, _startWithWindowsBox]);
 
-        // ── Bottom buttons ──
-        _saveButton = new Button
+        settingsTab.Controls.AddRange([profileGroup, connectionGroup, langGroup, optionsGroup]);
+
+        // ════════════════════════════════════════
+        //  TAB 2: OpenRouter Free Models
+        // ════════════════════════════════════════
+        var openRouterTab = new TabPage("OpenRouter") { Padding = new Padding(4) };
+
+        var orDescription = new Label
         {
-            Text = "OK",
-            Location = new Point(316, 494),
-            Size = new Size(75, 28),
-            Anchor = AnchorStyles.Bottom | AnchorStyles.Right
+            Text = "Browse free models from OpenRouter.ai and create a profile with one click. You only need to supply your OpenRouter API key.",
+            Location = new Point(8, 8),
+            Size = new Size(480, 34),
+            ForeColor = SystemColors.GrayText
         };
+
+        _fetchButton = new Button { Text = "Fetch Free Models", Location = new Point(8, 48), Size = new Size(140, 28) };
+        _fetchButton.Click += FetchModels_Click;
+
+        _orStatusLabel = new Label { Text = "", Location = new Point(156, 54), Size = new Size(330, 17), TextAlign = ContentAlignment.MiddleLeft };
+
+        var searchLabel = new Label { Text = "Search:", Location = new Point(8, 86), Size = new Size(50, 17), TextAlign = ContentAlignment.MiddleLeft };
+        _orSearchBox = new TextBox { Location = new Point(60, 84), Size = new Size(200, 23) };
+        _orSearchBox.TextChanged += OrSearch_Changed;
+
+        _modelListView = new ListView
+        {
+            Location = new Point(8, 114),
+            Size = new Size(480, 310),
+            View = View.Details,
+            FullRowSelect = true,
+            GridLines = true,
+            MultiSelect = false,
+            HideSelection = false
+        };
+        _modelListView.Columns.Add("Model Name", 220);
+        _modelListView.Columns.Add("ID", 160);
+        _modelListView.Columns.Add("Context", 80, HorizontalAlignment.Right);
+
+        _createProfileButton = new Button
+        {
+            Text = "Create Profile from Selected",
+            Location = new Point(8, 432),
+            Size = new Size(200, 30),
+            Enabled = false
+        };
+        _createProfileButton.Click += CreateProfileFromModel_Click;
+        _modelListView.SelectedIndexChanged += (_, _) => _createProfileButton.Enabled = _modelListView.SelectedItems.Count > 0;
+
+        openRouterTab.Controls.AddRange([orDescription, _fetchButton, _orStatusLabel, searchLabel, _orSearchBox, _modelListView, _createProfileButton]);
+
+        tabControl.TabPages.Add(settingsTab);
+        tabControl.TabPages.Add(openRouterTab);
+
+        // ── Bottom buttons ──
+        _saveButton = new Button { Text = "OK", Location = new Point(352, 524), Size = new Size(75, 28), Anchor = AnchorStyles.Bottom | AnchorStyles.Right };
         _saveButton.Click += SaveButton_Click;
 
-        _cancelButton = new Button
-        {
-            Text = "Cancel",
-            Location = new Point(397, 494),
-            Size = new Size(75, 28),
-            Anchor = AnchorStyles.Bottom | AnchorStyles.Right
-        };
+        _cancelButton = new Button { Text = "Cancel", Location = new Point(433, 524), Size = new Size(75, 28), Anchor = AnchorStyles.Bottom | AnchorStyles.Right };
         _cancelButton.Click += (_, _) => { DialogResult = DialogResult.Cancel; Close(); };
 
-        Controls.AddRange([profileGroup, connectionGroup, langGroup, optionsGroup, _saveButton, _cancelButton]);
-
+        Controls.AddRange([tabControl, _saveButton, _cancelButton]);
         AcceptButton = _saveButton;
         CancelButton = _cancelButton;
 
-        // Tab order
-        _profileBox.TabIndex = 0;
-        _addButton.TabIndex = 1;
-        _renameButton.TabIndex = 2;
-        _deleteButton.TabIndex = 3;
-        _providerBox.TabIndex = 4;
-        _endpointBox.TabIndex = 5;
-        _apiKeyBox.TabIndex = 6;
-        _modelBox.TabIndex = 7;
-        _testButton.TabIndex = 8;
-        _saveButton.TabIndex = 9;
-        _cancelButton.TabIndex = 10;
-
         RefreshProfileList(_config.ActiveProfile);
     }
+
+    // ──────────────────────────────────────────
+    //  OpenRouter methods
+    // ──────────────────────────────────────────
+
+    private sealed class OpenRouterModel
+    {
+        public string Id { get; set; } = "";
+        public string Name { get; set; } = "";
+        public int ContextLength { get; set; }
+    }
+
+    private async void FetchModels_Click(object? sender, EventArgs e)
+    {
+        _fetchButton.Enabled = false;
+        _fetchButton.Text = "Fetching...";
+        _orStatusLabel.ForeColor = SystemColors.GrayText;
+        _orStatusLabel.Text = "Downloading model list...";
+        _modelListView.Items.Clear();
+        _allModels.Clear();
+
+        try
+        {
+            using var http = new HttpClient { Timeout = TimeSpan.FromSeconds(30) };
+            var json = await http.GetStringAsync("https://openrouter.ai/api/v1/models");
+            using var doc = JsonDocument.Parse(json);
+
+            var data = doc.RootElement.GetProperty("data");
+            foreach (var model in data.EnumerateArray())
+            {
+                // Check if free: pricing.prompt == "0" and pricing.completion == "0"
+                if (!model.TryGetProperty("pricing", out var pricing)) continue;
+
+                var promptPrice = pricing.TryGetProperty("prompt", out var pp) ? pp.GetString() : null;
+                var completionPrice = pricing.TryGetProperty("completion", out var cp) ? cp.GetString() : null;
+
+                if (promptPrice != "0" || completionPrice != "0") continue;
+
+                var id = model.GetProperty("id").GetString() ?? "";
+                var name = model.TryGetProperty("name", out var n) ? n.GetString() ?? id : id;
+                var ctx = model.TryGetProperty("context_length", out var cl) ? cl.GetInt32() : 0;
+
+                _allModels.Add(new OpenRouterModel { Id = id, Name = name, ContextLength = ctx });
+            }
+
+            _allModels = _allModels.OrderBy(m => m.Name).ToList();
+            _filteredModels = _allModels;
+            PopulateModelList();
+
+            _orStatusLabel.ForeColor = Color.FromArgb(0, 128, 0);
+            _orStatusLabel.Text = $"Found {_allModels.Count} free models.";
+        }
+        catch (Exception ex)
+        {
+            _orStatusLabel.ForeColor = Color.Red;
+            _orStatusLabel.Text = ex.Message.Length > 60 ? ex.Message[..57] + "..." : ex.Message;
+        }
+        finally
+        {
+            _fetchButton.Enabled = true;
+            _fetchButton.Text = "Fetch Free Models";
+        }
+    }
+
+    private void OrSearch_Changed(object? sender, EventArgs e)
+    {
+        var query = _orSearchBox.Text.Trim();
+        _filteredModels = string.IsNullOrEmpty(query)
+            ? _allModels
+            : _allModels.Where(m =>
+                m.Name.Contains(query, StringComparison.OrdinalIgnoreCase) ||
+                m.Id.Contains(query, StringComparison.OrdinalIgnoreCase)).ToList();
+        PopulateModelList();
+    }
+
+    private void PopulateModelList()
+    {
+        _modelListView.BeginUpdate();
+        _modelListView.Items.Clear();
+        foreach (var m in _filteredModels)
+        {
+            var item = new ListViewItem(m.Name);
+            item.SubItems.Add(m.Id);
+            item.SubItems.Add(m.ContextLength > 0 ? $"{m.ContextLength:N0}" : "—");
+            item.Tag = m;
+            _modelListView.Items.Add(item);
+        }
+        _modelListView.EndUpdate();
+        _createProfileButton.Enabled = false;
+    }
+
+    private void CreateProfileFromModel_Click(object? sender, EventArgs e)
+    {
+        if (_modelListView.SelectedItems.Count == 0) return;
+        var model = (OpenRouterModel)_modelListView.SelectedItems[0].Tag!;
+
+        // Generate a profile name from the model name
+        var profileName = model.Name;
+        if (_config.Profiles.ContainsKey(profileName))
+        {
+            var result = MessageBox.Show(this,
+                $"Profile \"{profileName}\" already exists. Overwrite it?",
+                "LLM-Rephraser", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
+            if (result != DialogResult.Yes) return;
+        }
+
+        // Save current profile edits first
+        if (_profileBox.SelectedItem != null)
+            SaveFieldsToProfile((string)_profileBox.SelectedItem);
+
+        _config.Profiles[profileName] = new ProfileConfig
+        {
+            Provider = ApiProvider.OpenAICompatible,
+            ApiEndpoint = "https://openrouter.ai/api/v1/chat/completions",
+            ApiKey = "",
+            ModelName = model.Id
+        };
+
+        RefreshProfileList(profileName);
+
+        MessageBox.Show(this,
+            $"Profile \"{profileName}\" created.\n\nEndpoint and model are pre-filled.\nPlease enter your OpenRouter API key in the Settings tab.",
+            "Profile Created", MessageBoxButtons.OK, MessageBoxIcon.Information);
+    }
+
+    // ──────────────────────────────────────────
+    //  Settings tab methods
+    // ──────────────────────────────────────────
 
     private void RefreshProfileList(string selectName)
     {
@@ -349,8 +387,6 @@ public sealed class SettingsForm : Form
     private void ProfileBox_Changed(object? sender, EventArgs e)
     {
         if (_suppressProfileSwitch || _profileBox.SelectedItem == null) return;
-
-        // Auto-save edits to the previous profile before switching
         LoadProfileIntoFields((string)_profileBox.SelectedItem);
     }
 
@@ -553,20 +589,8 @@ public sealed class SettingsForm : Form
         var txt = new TextBox { Text = defaultValue, Location = new Point(12, 32), Size = new Size(296, 23) };
         txt.SelectAll();
 
-        var ok = new Button
-        {
-            Text = "OK",
-            DialogResult = DialogResult.OK,
-            Location = new Point(152, 68),
-            Size = new Size(75, 25)
-        };
-        var cancel = new Button
-        {
-            Text = "Cancel",
-            DialogResult = DialogResult.Cancel,
-            Location = new Point(233, 68),
-            Size = new Size(75, 25)
-        };
+        var ok = new Button { Text = "OK", DialogResult = DialogResult.OK, Location = new Point(152, 68), Size = new Size(75, 25) };
+        var cancel = new Button { Text = "Cancel", DialogResult = DialogResult.Cancel, Location = new Point(233, 68), Size = new Size(75, 25) };
 
         dlg.Controls.AddRange([lbl, txt, ok, cancel]);
         dlg.AcceptButton = ok;
