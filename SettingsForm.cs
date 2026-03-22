@@ -19,6 +19,7 @@ public sealed class SettingsForm : Form
     private readonly Button _testButton;
     private readonly Label _testResultLabel;
     private readonly CheckBox _shiftRightClickBox;
+    private readonly CheckBox _startWithWindowsBox;
     private readonly ListBox _langListBox;
     private readonly Button _langAddButton;
     private readonly Button _langRemoveButton;
@@ -39,7 +40,7 @@ public sealed class SettingsForm : Form
         _config = config;
 
         Text = "LLM-Rephraser Settings";
-        ClientSize = new Size(484, 508);
+        ClientSize = new Size(484, 532);
         FormBorderStyle = FormBorderStyle.FixedDialog;
         MaximizeBox = false;
         MinimizeBox = false;
@@ -242,7 +243,7 @@ public sealed class SettingsForm : Form
         {
             Text = "Options",
             Location = new Point(12, 414),
-            Size = new Size(460, 48),
+            Size = new Size(460, 72),
             Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right
         };
 
@@ -254,13 +255,21 @@ public sealed class SettingsForm : Form
             Checked = _config.ShiftRightClickEnabled
         };
 
-        optionsGroup.Controls.Add(_shiftRightClickBox);
+        _startWithWindowsBox = new CheckBox
+        {
+            Text = "Start LLM-Rephraser with Windows",
+            Location = new Point(12, 44),
+            AutoSize = true,
+            Checked = AppConfig.ReadStartWithWindows()
+        };
+
+        optionsGroup.Controls.AddRange([_shiftRightClickBox, _startWithWindowsBox]);
 
         // ── Bottom buttons ──
         _saveButton = new Button
         {
             Text = "OK",
-            Location = new Point(316, 470),
+            Location = new Point(316, 494),
             Size = new Size(75, 28),
             Anchor = AnchorStyles.Bottom | AnchorStyles.Right
         };
@@ -269,7 +278,7 @@ public sealed class SettingsForm : Form
         _cancelButton = new Button
         {
             Text = "Cancel",
-            Location = new Point(397, 470),
+            Location = new Point(397, 494),
             Size = new Size(75, 28),
             Anchor = AnchorStyles.Bottom | AnchorStyles.Right
         };
@@ -497,6 +506,7 @@ public sealed class SettingsForm : Form
         SaveFieldsToProfile(profileName);
         _config.ActiveProfile = profileName;
         _config.ShiftRightClickEnabled = _shiftRightClickBox.Checked;
+        _config.StartWithWindows = _startWithWindowsBox.Checked;
         _config.TranslationLanguages = _langListBox.Items.Cast<string>().ToList();
         _config.Save();
 

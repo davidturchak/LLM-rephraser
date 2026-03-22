@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using Microsoft.Win32;
 
 namespace LlmRephraser;
 
@@ -24,6 +25,7 @@ public sealed class AppConfig
 {
     public string ActiveProfile { get; set; } = "Default";
     public bool ShiftRightClickEnabled { get; set; } = false;
+    public bool StartWithWindows { get; set; } = false;
     public List<string> TranslationLanguages { get; set; } = ["English", "Hebrew", "Arabic", "Russian"];
     public Dictionary<string, ProfileConfig> Profiles { get; set; } = new()
     {
@@ -77,5 +79,40 @@ public sealed class AppConfig
         Directory.CreateDirectory(ConfigDir);
         var json = JsonSerializer.Serialize(this, JsonOptions);
         File.WriteAllText(ConfigPath, json);
+        ApplyStartWithWindows();
+    }
+
+    private const string RunKey = @"Software\Microsoft\Windows\CurrentVersion\Run";
+    private const string RunValueName = "LLM-Rephraser";
+
+    public void ApplyStartWithWindows()
+    {
+        try
+        {
+            using var key = Registry.CurrentUser.OpenSubKey(RunKey, writable: true);
+            if (key == null) return;
+
+            if (StartWithWindows)
+            {
+                var exePath = Environment.ProcessPath ?? "";
+                if (!string.IsNullOrEmpty(exePath))
+                    key.SetValue(RunValueName, $"\"{exePath}\"");
+            }
+            else
+            {
+                key.DeleteValue(RunValueName, throwOnMissingValue: false);
+            }
+        }
+        catch { /* ignore registry errors */ }
+    }
+
+    public static bool ReadStartWithWindows()
+    {
+        try
+        {
+            using var key = Registry.CurrentUser.OpenSubKey(RunKey, writable: false);
+            return key?.GetValue(RunValueName) != null;
+        }
+        catch { return false; }
     }
 }

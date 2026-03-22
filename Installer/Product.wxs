@@ -13,7 +13,7 @@
     <MediaTemplate EmbedCab="yes" />
 
     <!-- Icon shown in Add/Remove Programs -->
-    <Icon Id="AppIcon" SourceFile="..\LLM-Rephraser\app.ico" />
+    <Icon Id="AppIcon" SourceFile="..\app.ico" />
     <Property Id="ARPPRODUCTICON" Value="AppIcon" />
     <Property Id="ARPHELPLINK" Value="https://github.com/davidturchak/LLM-rephraser" />
 
@@ -22,6 +22,17 @@
 
     <!-- Use minimal UI (license + install) -->
     <ui:WixUI Id="WixUI_InstallDir" InstallDirectory="INSTALLFOLDER" />
+
+    <!-- Launch app after install: checkbox on exit dialog -->
+    <Property Id="WIXUI_EXITDIALOGOPTIONALCHECKBOXTEXT" Value="Launch LLM-Rephraser" />
+    <Property Id="WIXUI_EXITDIALOGOPTIONALCHECKBOX" Value="1" />
+    <Property Id="WixShellExecTarget" Value="[#LLMRephraser.exe]" />
+    <CustomAction Id="LaunchApp" DllEntry="WixShellExec" Impersonate="yes"
+                  BinaryRef="Wix4UtilCA_X86" />
+    <UI>
+      <Publish Dialog="ExitDialog" Control="Finish" Event="DoAction" Value="LaunchApp"
+               Condition="WIXUI_EXITDIALOGOPTIONALCHECKBOX = 1 AND NOT Installed" />
+    </UI>
 
     <!-- Directory structure -->
     <StandardDirectory Id="LocalAppDataFolder">
@@ -41,7 +52,7 @@
       <Component Id="MainExe" Guid="61FDE17C-8EDB-488C-B770-C48D564B4351">
         <File Id="LLMRephraser.exe"
               Name="LLM-Rephraser.exe"
-              Source="..\LLM-Rephraser\bin\Release\net10.0-windows\win-x64\publish\LLM-Rephraser.exe"
+              Source="..\bin\Release\net10.0-windows\win-x64\publish\LLM-Rephraser.exe"
               KeyPath="yes" />
       </Component>
     </ComponentGroup>
