@@ -199,7 +199,7 @@ public sealed class SettingsForm : Form
         var orKeyLink = new LinkLabel
         {
             Text = "Get your OpenRouter API key",
-            Location = new Point(8, 466),
+            Location = new Point(220, 438),
             AutoSize = true
         };
         orKeyLink.LinkClicked += (_, _) =>
