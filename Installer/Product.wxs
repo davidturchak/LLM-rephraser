@@ -1,0 +1,103 @@
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs"
+     xmlns:ui="http://wixtoolset.org/schemas/v4/wxs/ui">
+
+  <Package Name="LLM-Rephraser"
+           Manufacturer="David Turchak"
+           Version="1.0.0.0"
+           UpgradeCode="1E4E9E57-9523-4C82-A7AD-5F36A5EDF05C"
+           Compressed="yes"
+           InstallerVersion="500"
+           Scope="perUser">
+
+    <MajorUpgrade DowngradeErrorMessage="A newer version of LLM-Rephraser is already installed." />
+    <MediaTemplate EmbedCab="yes" />
+
+    <!-- Icon shown in Add/Remove Programs -->
+    <Icon Id="AppIcon" SourceFile="..\LLM-Rephraser\app.ico" />
+    <Property Id="ARPPRODUCTICON" Value="AppIcon" />
+    <Property Id="ARPHELPLINK" Value="https://github.com/davidturchak/LLM-rephraser" />
+
+    <!-- License file for UI -->
+    <WixVariable Id="WixUILicenseRtf" Value="License.rtf" />
+
+    <!-- Use minimal UI (license + install) -->
+    <ui:WixUI Id="WixUI_InstallDir" InstallDirectory="INSTALLFOLDER" />
+
+    <!-- Directory structure -->
+    <StandardDirectory Id="LocalAppDataFolder">
+      <Directory Id="INSTALLFOLDER" Name="LLM-Rephraser" />
+    </StandardDirectory>
+
+    <StandardDirectory Id="ProgramMenuFolder">
+      <Directory Id="StartMenuDir" Name="LLM-Rephraser" />
+    </StandardDirectory>
+
+    <StandardDirectory Id="DesktopFolder" />
+
+    <StandardDirectory Id="StartupFolder" />
+
+    <!-- Main application files -->
+    <ComponentGroup Id="AppFiles" Directory="INSTALLFOLDER">
+      <Component Id="MainExe" Guid="61FDE17C-8EDB-488C-B770-C48D564B4351">
+        <File Id="LLMRephraser.exe"
+              Name="LLM-Rephraser.exe"
+              Source="..\LLM-Rephraser\bin\Release\net10.0-windows\win-x64\publish\LLM-Rephraser.exe"
+              KeyPath="yes" />
+      </Component>
+    </ComponentGroup>
+
+    <!-- Start Menu shortcut -->
+    <ComponentGroup Id="StartMenuShortcuts" Directory="StartMenuDir">
+      <Component Id="StartMenuShortcut" Guid="C0EF0E61-167E-4296-94D9-16367B6C91F2">
+        <Shortcut Id="StartMenuLink"
+                  Name="LLM-Rephraser"
+                  Target="[INSTALLFOLDER]LLM-Rephraser.exe"
+                  WorkingDirectory="INSTALLFOLDER"
+                  Icon="AppIcon" />
+        <RemoveFolder Id="RemoveStartMenuDir" On="uninstall" />
+        <RegistryValue Root="HKCU" Key="Software\LLM-Rephraser"
+                       Name="StartMenu" Type="integer" Value="1" KeyPath="yes" />
+      </Component>
+    </ComponentGroup>
+
+    <!-- Desktop shortcut -->
+    <ComponentGroup Id="DesktopShortcuts" Directory="DesktopFolder">
+      <Component Id="DesktopShortcut" Guid="E6D22AC6-CAD4-4F02-974F-1A6E3A965D4B">
+        <Shortcut Id="DesktopLink"
+                  Name="LLM-Rephraser"
+                  Target="[INSTALLFOLDER]LLM-Rephraser.exe"
+                  WorkingDirectory="INSTALLFOLDER"
+                  Icon="AppIcon" />
+        <RegistryValue Root="HKCU" Key="Software\LLM-Rephraser"
+                       Name="Desktop" Type="integer" Value="1" KeyPath="yes" />
+      </Component>
+    </ComponentGroup>
+
+    <!-- Run at Windows startup -->
+    <ComponentGroup Id="StartupEntry" Directory="INSTALLFOLDER">
+      <Component Id="StartupReg" Guid="53D17DEC-B476-4D8C-AA3A-2EADF2E230A7">
+        <RegistryValue Root="HKCU"
+                       Key="Software\Microsoft\Windows\CurrentVersion\Run"
+                       Name="LLM-Rephraser"
+                       Type="string"
+                       Value="[INSTALLFOLDER]LLM-Rephraser.exe"
+                       KeyPath="yes" />
+      </Component>
+    </ComponentGroup>
+
+    <!-- Features -->
+    <Feature Id="MainApp" Title="LLM-Rephraser" Level="1" AllowAbsent="no">
+      <ComponentGroupRef Id="AppFiles" />
+      <ComponentGroupRef Id="StartMenuShortcuts" />
+    </Feature>
+
+    <Feature Id="DesktopShortcutFeature" Title="Desktop Shortcut" Level="1" AllowAbsent="yes">
+      <ComponentGroupRef Id="DesktopShortcuts" />
+    </Feature>
+
+    <Feature Id="StartupFeature" Title="Run at Windows Startup" Level="2" AllowAbsent="yes">
+      <ComponentGroupRef Id="StartupEntry" />
+    </Feature>
+
+  </Package>
+</Wix>
