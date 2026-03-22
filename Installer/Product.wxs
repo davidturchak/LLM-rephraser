@@ -3,7 +3,7 @@
 
   <Package Name="LLM-Rephraser"
            Manufacturer="David Turchak"
-           Version="1.1.0.0"
+           Version="1.2.0.0"
            UpgradeCode="1E4E9E57-9523-4C82-A7AD-5F36A5EDF05C"
            Compressed="yes"
            InstallerVersion="500"

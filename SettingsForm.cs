@@ -48,6 +48,15 @@ public sealed class SettingsForm : Form
     private List<GeminiModel> _allGaiModels = [];
     private List<GeminiModel> _filteredGaiModels = [];
 
+    // ── NVIDIA tab fields ──
+    private readonly ListView _nvModelListView;
+    private readonly Button _nvFetchButton;
+    private readonly Button _nvCreateProfileButton;
+    private readonly Label _nvStatusLabel;
+    private readonly TextBox _nvSearchBox;
+    private List<NvidiaModel> _allNvModels = [];
+    private List<NvidiaModel> _filteredNvModels = [];
+
     // ── Bottom buttons ──
     private readonly Button _saveButton;
     private readonly Button _cancelButton;
@@ -289,9 +298,72 @@ public sealed class SettingsForm : Form
 
         gaiTab.Controls.AddRange([gaiDescription, gaiKeyLabel, _gaiApiKeyBox, _gaiFetchButton, _gaiStatusLabel, gaiSearchLabel, _gaiSearchBox, _gaiModelListView, _gaiCreateProfileButton, gaiKeyLink]);
 
+        // ════════════════════════════════════════
+        //  TAB 4: NVIDIA Build
+        // ════════════════════════════════════════
+        var nvTab = new TabPage("NVIDIA") { Padding = new Padding(4) };
+
+        var nvDescription = new Label
+        {
+            Text = "Browse models from NVIDIA Build (build.nvidia.com) and create a profile with one click. You only need to supply your NVIDIA API key.",
+            Location = new Point(8, 8),
+            Size = new Size(480, 34),
+            ForeColor = SystemColors.GrayText
+        };
+
+        _nvFetchButton = new Button { Text = "Fetch Models", Location = new Point(8, 48), Size = new Size(120, 28) };
+        _nvFetchButton.Click += NvFetchModels_Click;
+
+        _nvStatusLabel = new Label { Text = "", Location = new Point(136, 54), Size = new Size(350, 17), TextAlign = ContentAlignment.MiddleLeft };
+
+        var nvSearchLabel = new Label { Text = "Search:", Location = new Point(8, 86), Size = new Size(50, 17), TextAlign = ContentAlignment.MiddleLeft };
+        _nvSearchBox = new TextBox { Location = new Point(60, 84), Size = new Size(200, 23) };
+        _nvSearchBox.TextChanged += NvSearch_Changed;
+
+        _nvModelListView = new ListView
+        {
+            Location = new Point(8, 114),
+            Size = new Size(480, 310),
+            View = View.Details,
+            FullRowSelect = true,
+            GridLines = true,
+            MultiSelect = false,
+            HideSelection = false
+        };
+        _nvModelListView.Columns.Add("Model ID", 300);
+        _nvModelListView.Columns.Add("Owner", 160);
+
+        _nvCreateProfileButton = new Button
+        {
+            Text = "Create Profile from Selected",
+            Location = new Point(8, 432),
+            Size = new Size(200, 30),
+            Enabled = false
+        };
+        _nvCreateProfileButton.Click += NvCreateProfile_Click;
+        _nvModelListView.SelectedIndexChanged += (_, _) => _nvCreateProfileButton.Enabled = _nvModelListView.SelectedItems.Count > 0;
+
+        var nvKeyLink = new LinkLabel
+        {
+            Text = "Get your NVIDIA API key",
+            Location = new Point(220, 438),
+            AutoSize = true
+        };
+        nvKeyLink.LinkClicked += (_, _) =>
+        {
+            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+            {
+                FileName = "https://build.nvidia.com/models",
+                UseShellExecute = true
+            });
+        };
+
+        nvTab.Controls.AddRange([nvDescription, _nvFetchButton, _nvStatusLabel, nvSearchLabel, _nvSearchBox, _nvModelListView, _nvCreateProfileButton, nvKeyLink]);
+
         tabControl.TabPages.Add(settingsTab);
         tabControl.TabPages.Add(openRouterTab);
         tabControl.TabPages.Add(gaiTab);
+        tabControl.TabPages.Add(nvTab);
 
         // ── Bottom buttons ──
         _saveButton = new Button { Text = "OK", Location = new Point(352, 524), Size = new Size(75, 28), Anchor = AnchorStyles.Bottom | AnchorStyles.Right };
@@ -562,6 +634,117 @@ public sealed class SettingsForm : Form
 
         MessageBox.Show(this,
             $"Profile \"{profileName}\" created.\n\nEndpoint, model, and API key are pre-filled.",
+            "Profile Created", MessageBoxButtons.OK, MessageBoxIcon.Information);
+    }
+
+    // ──────────────────────────────────────────
+    //  NVIDIA methods
+    // ──────────────────────────────────────────
+
+    private sealed class NvidiaModel
+    {
+        public string Id { get; set; } = "";
+        public string Owner { get; set; } = "";
+    }
+
+    private async void NvFetchModels_Click(object? sender, EventArgs e)
+    {
+        _nvFetchButton.Enabled = false;
+        _nvFetchButton.Text = "Fetching...";
+        _nvStatusLabel.ForeColor = SystemColors.GrayText;
+        _nvStatusLabel.Text = "Downloading model list...";
+        _nvModelListView.Items.Clear();
+        _allNvModels.Clear();
+
+        try
+        {
+            using var http = new HttpClient { Timeout = TimeSpan.FromSeconds(30) };
+            var json = await http.GetStringAsync("https://integrate.api.nvidia.com/v1/models");
+            using var doc = JsonDocument.Parse(json);
+
+            var data = doc.RootElement.GetProperty("data");
+            foreach (var model in data.EnumerateArray())
+            {
+                var id = model.GetProperty("id").GetString() ?? "";
+                var owner = model.TryGetProperty("owned_by", out var ob) ? ob.GetString() ?? "" : "";
+
+                _allNvModels.Add(new NvidiaModel { Id = id, Owner = owner });
+            }
+
+            _allNvModels = _allNvModels.OrderBy(m => m.Id).ToList();
+            _filteredNvModels = _allNvModels;
+            PopulateNvModelList();
+
+            _nvStatusLabel.ForeColor = Color.FromArgb(0, 128, 0);
+            _nvStatusLabel.Text = $"Found {_allNvModels.Count} models.";
+        }
+        catch (Exception ex)
+        {
+            _nvStatusLabel.ForeColor = Color.Red;
+            _nvStatusLabel.Text = ex.Message.Length > 70 ? ex.Message[..67] + "..." : ex.Message;
+        }
+        finally
+        {
+            _nvFetchButton.Enabled = true;
+            _nvFetchButton.Text = "Fetch Models";
+        }
+    }
+
+    private void NvSearch_Changed(object? sender, EventArgs e)
+    {
+        var query = _nvSearchBox.Text.Trim();
+        _filteredNvModels = string.IsNullOrEmpty(query)
+            ? _allNvModels
+            : _allNvModels.Where(m =>
+                m.Id.Contains(query, StringComparison.OrdinalIgnoreCase) ||
+                m.Owner.Contains(query, StringComparison.OrdinalIgnoreCase)).ToList();
+        PopulateNvModelList();
+    }
+
+    private void PopulateNvModelList()
+    {
+        _nvModelListView.BeginUpdate();
+        _nvModelListView.Items.Clear();
+        foreach (var m in _filteredNvModels)
+        {
+            var item = new ListViewItem(m.Id);
+            item.SubItems.Add(m.Owner);
+            item.Tag = m;
+            _nvModelListView.Items.Add(item);
+        }
+        _nvModelListView.EndUpdate();
+        _nvCreateProfileButton.Enabled = false;
+    }
+
+    private void NvCreateProfile_Click(object? sender, EventArgs e)
+    {
+        if (_nvModelListView.SelectedItems.Count == 0) return;
+        var model = (NvidiaModel)_nvModelListView.SelectedItems[0].Tag!;
+
+        var profileName = $"NVIDIA - {model.Id}";
+        if (_config.Profiles.ContainsKey(profileName))
+        {
+            var result = MessageBox.Show(this,
+                $"Profile \"{profileName}\" already exists. Overwrite it?",
+                "LLM-Rephraser", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
+            if (result != DialogResult.Yes) return;
+        }
+
+        if (_profileBox.SelectedItem != null)
+            SaveFieldsToProfile((string)_profileBox.SelectedItem);
+
+        _config.Profiles[profileName] = new ProfileConfig
+        {
+            Provider = ApiProvider.OpenAICompatible,
+            ApiEndpoint = "https://integrate.api.nvidia.com/v1/chat/completions",
+            ApiKey = "",
+            ModelName = model.Id
+        };
+
+        RefreshProfileList(profileName);
+
+        MessageBox.Show(this,
+            $"Profile \"{profileName}\" created.\n\nEndpoint and model are pre-filled.\nPlease enter your NVIDIA API key in the Settings tab.",
             "Profile Created", MessageBoxButtons.OK, MessageBoxIcon.Information);
     }
 

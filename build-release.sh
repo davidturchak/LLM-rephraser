@@ -27,7 +27,7 @@ if git diff --quiet HEAD && [ -z "$(git ls-files --others --exclude-standard)" ]
 fi
 
 # ── 2. Read current version from csproj ──
-CURRENT=$(grep -oP '(?<=<Version>)[^<]+' "$CSPROJ")
+CURRENT=$(sed -n 's/.*<Version>\([^<]*\)<\/Version>.*/\1/p' "$CSPROJ")
 if [ -z "$CURRENT" ]; then
     echo "ERROR: Could not read <Version> from $CSPROJ"
     exit 1
