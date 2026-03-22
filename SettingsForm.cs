@@ -38,6 +38,16 @@ public sealed class SettingsForm : Form
     private List<OpenRouterModel> _allModels = [];
     private List<OpenRouterModel> _filteredModels = [];
 
+    // ── Google AI Studio tab fields ──
+    private readonly ListView _gaiModelListView;
+    private readonly Button _gaiFetchButton;
+    private readonly Button _gaiCreateProfileButton;
+    private readonly Label _gaiStatusLabel;
+    private readonly TextBox _gaiSearchBox;
+    private readonly TextBox _gaiApiKeyBox;
+    private List<GeminiModel> _allGaiModels = [];
+    private List<GeminiModel> _filteredGaiModels = [];
+
     // ── Bottom buttons ──
     private readonly Button _saveButton;
     private readonly Button _cancelButton;
@@ -213,8 +223,75 @@ public sealed class SettingsForm : Form
 
         openRouterTab.Controls.AddRange([orDescription, _fetchButton, _orStatusLabel, searchLabel, _orSearchBox, _modelListView, _createProfileButton, orKeyLink]);
 
+        // ════════════════════════════════════════
+        //  TAB 3: Google AI Studio
+        // ════════════════════════════════════════
+        var gaiTab = new TabPage("Google AI Studio") { Padding = new Padding(4) };
+
+        var gaiDescription = new Label
+        {
+            Text = "Browse Gemini models from Google AI Studio and create a profile with one click.",
+            Location = new Point(8, 8),
+            Size = new Size(480, 20),
+            ForeColor = SystemColors.GrayText
+        };
+
+        var gaiKeyLabel = new Label { Text = "API Key:", Location = new Point(8, 38), Size = new Size(55, 17), TextAlign = ContentAlignment.MiddleLeft };
+        _gaiApiKeyBox = new TextBox { Location = new Point(65, 36), Size = new Size(260, 23), UseSystemPasswordChar = true };
+
+        _gaiFetchButton = new Button { Text = "Fetch Models", Location = new Point(335, 35), Size = new Size(100, 25) };
+        _gaiFetchButton.Click += GaiFetchModels_Click;
+
+        _gaiStatusLabel = new Label { Text = "", Location = new Point(8, 66), Size = new Size(480, 17), TextAlign = ContentAlignment.MiddleLeft };
+
+        var gaiSearchLabel = new Label { Text = "Search:", Location = new Point(8, 90), Size = new Size(50, 17), TextAlign = ContentAlignment.MiddleLeft };
+        _gaiSearchBox = new TextBox { Location = new Point(60, 88), Size = new Size(200, 23) };
+        _gaiSearchBox.TextChanged += GaiSearch_Changed;
+
+        _gaiModelListView = new ListView
+        {
+            Location = new Point(8, 118),
+            Size = new Size(480, 296),
+            View = View.Details,
+            FullRowSelect = true,
+            GridLines = true,
+            MultiSelect = false,
+            HideSelection = false
+        };
+        _gaiModelListView.Columns.Add("Display Name", 200);
+        _gaiModelListView.Columns.Add("Model ID", 170);
+        _gaiModelListView.Columns.Add("Context", 80, HorizontalAlignment.Right);
+
+        _gaiCreateProfileButton = new Button
+        {
+            Text = "Create Profile from Selected",
+            Location = new Point(8, 422),
+            Size = new Size(200, 30),
+            Enabled = false
+        };
+        _gaiCreateProfileButton.Click += GaiCreateProfile_Click;
+        _gaiModelListView.SelectedIndexChanged += (_, _) => _gaiCreateProfileButton.Enabled = _gaiModelListView.SelectedItems.Count > 0;
+
+        var gaiKeyLink = new LinkLabel
+        {
+            Text = "Get your Google AI Studio API key",
+            Location = new Point(220, 428),
+            AutoSize = true
+        };
+        gaiKeyLink.LinkClicked += (_, _) =>
+        {
+            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+            {
+                FileName = "https://aistudio.google.com/apikey",
+                UseShellExecute = true
+            });
+        };
+
+        gaiTab.Controls.AddRange([gaiDescription, gaiKeyLabel, _gaiApiKeyBox, _gaiFetchButton, _gaiStatusLabel, gaiSearchLabel, _gaiSearchBox, _gaiModelListView, _gaiCreateProfileButton, gaiKeyLink]);
+
         tabControl.TabPages.Add(settingsTab);
         tabControl.TabPages.Add(openRouterTab);
+        tabControl.TabPages.Add(gaiTab);
 
         // ── Bottom buttons ──
         _saveButton = new Button { Text = "OK", Location = new Point(352, 524), Size = new Size(75, 28), Anchor = AnchorStyles.Bottom | AnchorStyles.Right };
@@ -351,6 +428,140 @@ public sealed class SettingsForm : Form
 
         MessageBox.Show(this,
             $"Profile \"{profileName}\" created.\n\nEndpoint and model are pre-filled.\nPlease enter your OpenRouter API key in the Settings tab.",
+            "Profile Created", MessageBoxButtons.OK, MessageBoxIcon.Information);
+    }
+
+    // ──────────────────────────────────────────
+    //  Google AI Studio methods
+    // ──────────────────────────────────────────
+
+    private sealed class GeminiModel
+    {
+        public string Id { get; set; } = "";
+        public string DisplayName { get; set; } = "";
+        public int InputTokenLimit { get; set; }
+    }
+
+    private async void GaiFetchModels_Click(object? sender, EventArgs e)
+    {
+        if (string.IsNullOrWhiteSpace(_gaiApiKeyBox.Text))
+        {
+            _gaiStatusLabel.ForeColor = Color.Red;
+            _gaiStatusLabel.Text = "API key is required to fetch models.";
+            return;
+        }
+
+        _gaiFetchButton.Enabled = false;
+        _gaiFetchButton.Text = "Fetching...";
+        _gaiStatusLabel.ForeColor = SystemColors.GrayText;
+        _gaiStatusLabel.Text = "Downloading model list...";
+        _gaiModelListView.Items.Clear();
+        _allGaiModels.Clear();
+
+        try
+        {
+            using var http = new HttpClient { Timeout = TimeSpan.FromSeconds(30) };
+            var url = $"https://generativelanguage.googleapis.com/v1beta/models?key={_gaiApiKeyBox.Text.Trim()}&pageSize=1000";
+            var json = await http.GetStringAsync(url);
+            using var doc = JsonDocument.Parse(json);
+
+            var models = doc.RootElement.GetProperty("models");
+            foreach (var model in models.EnumerateArray())
+            {
+                // Only include models that support generateContent
+                if (!model.TryGetProperty("supportedGenerationMethods", out var methods)) continue;
+                bool supportsGenerate = false;
+                foreach (var m in methods.EnumerateArray())
+                {
+                    if (m.GetString() == "generateContent") { supportsGenerate = true; break; }
+                }
+                if (!supportsGenerate) continue;
+
+                var name = model.GetProperty("name").GetString() ?? "";
+                var displayName = model.TryGetProperty("displayName", out var dn) ? dn.GetString() ?? name : name;
+                var inputLimit = model.TryGetProperty("inputTokenLimit", out var il) ? il.GetInt32() : 0;
+
+                // Strip "models/" prefix for the ID used in API calls
+                var modelId = name.StartsWith("models/") ? name["models/".Length..] : name;
+
+                _allGaiModels.Add(new GeminiModel { Id = modelId, DisplayName = displayName, InputTokenLimit = inputLimit });
+            }
+
+            _allGaiModels = _allGaiModels.OrderBy(m => m.DisplayName).ToList();
+            _filteredGaiModels = _allGaiModels;
+            PopulateGaiModelList();
+
+            _gaiStatusLabel.ForeColor = Color.FromArgb(0, 128, 0);
+            _gaiStatusLabel.Text = $"Found {_allGaiModels.Count} models.";
+        }
+        catch (Exception ex)
+        {
+            _gaiStatusLabel.ForeColor = Color.Red;
+            _gaiStatusLabel.Text = ex.Message.Length > 70 ? ex.Message[..67] + "..." : ex.Message;
+        }
+        finally
+        {
+            _gaiFetchButton.Enabled = true;
+            _gaiFetchButton.Text = "Fetch Models";
+        }
+    }
+
+    private void GaiSearch_Changed(object? sender, EventArgs e)
+    {
+        var query = _gaiSearchBox.Text.Trim();
+        _filteredGaiModels = string.IsNullOrEmpty(query)
+            ? _allGaiModels
+            : _allGaiModels.Where(m =>
+                m.DisplayName.Contains(query, StringComparison.OrdinalIgnoreCase) ||
+                m.Id.Contains(query, StringComparison.OrdinalIgnoreCase)).ToList();
+        PopulateGaiModelList();
+    }
+
+    private void PopulateGaiModelList()
+    {
+        _gaiModelListView.BeginUpdate();
+        _gaiModelListView.Items.Clear();
+        foreach (var m in _filteredGaiModels)
+        {
+            var item = new ListViewItem(m.DisplayName);
+            item.SubItems.Add(m.Id);
+            item.SubItems.Add(m.InputTokenLimit > 0 ? $"{m.InputTokenLimit:N0}" : "—");
+            item.Tag = m;
+            _gaiModelListView.Items.Add(item);
+        }
+        _gaiModelListView.EndUpdate();
+        _gaiCreateProfileButton.Enabled = false;
+    }
+
+    private void GaiCreateProfile_Click(object? sender, EventArgs e)
+    {
+        if (_gaiModelListView.SelectedItems.Count == 0) return;
+        var model = (GeminiModel)_gaiModelListView.SelectedItems[0].Tag!;
+
+        var profileName = $"Google - {model.DisplayName}";
+        if (_config.Profiles.ContainsKey(profileName))
+        {
+            var result = MessageBox.Show(this,
+                $"Profile \"{profileName}\" already exists. Overwrite it?",
+                "LLM-Rephraser", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
+            if (result != DialogResult.Yes) return;
+        }
+
+        if (_profileBox.SelectedItem != null)
+            SaveFieldsToProfile((string)_profileBox.SelectedItem);
+
+        _config.Profiles[profileName] = new ProfileConfig
+        {
+            Provider = ApiProvider.OpenAICompatible,
+            ApiEndpoint = "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions",
+            ApiKey = _gaiApiKeyBox.Text.Trim(),
+            ModelName = model.Id
+        };
+
+        RefreshProfileList(profileName);
+
+        MessageBox.Show(this,
+            $"Profile \"{profileName}\" created.\n\nEndpoint, model, and API key are pre-filled.",
             "Profile Created", MessageBoxButtons.OK, MessageBoxIcon.Information);
     }
 
