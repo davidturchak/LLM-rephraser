@@ -20,7 +20,7 @@
     <!-- License file for UI -->
     <WixVariable Id="WixUILicenseRtf" Value="License.rtf" />
 
-    <!-- Use minimal UI (license + install) -->
+    <!-- UI: install dir dialog set -->
     <ui:WixUI Id="WixUI_InstallDir" InstallDirectory="INSTALLFOLDER" />
 
     <!-- Launch app after install: checkbox on exit dialog -->
@@ -28,7 +28,7 @@
     <Property Id="WIXUI_EXITDIALOGOPTIONALCHECKBOX" Value="1" />
     <Property Id="WixShellExecTarget" Value="[#LLMRephraser.exe]" />
     <CustomAction Id="LaunchApp" DllEntry="WixShellExec" Impersonate="yes"
-                  BinaryRef="Wix4UtilCA_X86" />
+                  BinaryRef="Wix4UtilCA_X64" />
     <UI>
       <Publish Dialog="ExitDialog" Control="Finish" Event="DoAction" Value="LaunchApp"
                Condition="WIXUI_EXITDIALOGOPTIONALCHECKBOX = 1 AND NOT Installed" />
@@ -44,8 +44,6 @@
     </StandardDirectory>
 
     <StandardDirectory Id="DesktopFolder" />
-
-    <StandardDirectory Id="StartupFolder" />
 
     <!-- Main application files -->
     <ComponentGroup Id="AppFiles" Directory="INSTALLFOLDER">
@@ -84,30 +82,11 @@
       </Component>
     </ComponentGroup>
 
-    <!-- Run at Windows startup -->
-    <ComponentGroup Id="StartupEntry" Directory="INSTALLFOLDER">
-      <Component Id="StartupReg" Guid="53D17DEC-B476-4D8C-AA3A-2EADF2E230A7">
-        <RegistryValue Root="HKCU"
-                       Key="Software\Microsoft\Windows\CurrentVersion\Run"
-                       Name="LLM-Rephraser"
-                       Type="string"
-                       Value="[INSTALLFOLDER]LLM-Rephraser.exe"
-                       KeyPath="yes" />
-      </Component>
-    </ComponentGroup>
-
     <!-- Features -->
     <Feature Id="MainApp" Title="LLM-Rephraser" Level="1" AllowAbsent="no">
       <ComponentGroupRef Id="AppFiles" />
       <ComponentGroupRef Id="StartMenuShortcuts" />
-    </Feature>
-
-    <Feature Id="DesktopShortcutFeature" Title="Desktop Shortcut" Level="1" AllowAbsent="yes">
       <ComponentGroupRef Id="DesktopShortcuts" />
-    </Feature>
-
-    <Feature Id="StartupFeature" Title="Run at Windows Startup" Level="2" AllowAbsent="yes">
-      <ComponentGroupRef Id="StartupEntry" />
     </Feature>
 
   </Package>
