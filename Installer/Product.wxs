@@ -3,7 +3,7 @@
 
   <Package Name="LLM-Rephraser"
            Manufacturer="David Turchak"
-           Version="1.2.2.0"
+           Version="1.2.3.0"
            UpgradeCode="1E4E9E57-9523-4C82-A7AD-5F36A5EDF05C"
            Compressed="yes"
            InstallerVersion="500"
@@ -23,9 +23,9 @@
     <!-- UI: install dir dialog set -->
     <ui:WixUI Id="WixUI_InstallDir" InstallDirectory="INSTALLFOLDER" />
 
-    <!-- Kill running process before uninstall/upgrade -->
+    <!-- Kill running process before uninstall/upgrade (hidden window) -->
     <CustomAction Id="KillApp" Directory="INSTALLFOLDER"
-                  ExeCommand="cmd.exe /c taskkill /IM LLM-Rephraser.exe /F"
+                  ExeCommand="powershell.exe -WindowStyle Hidden -Command &quot;Stop-Process -Name 'LLM-Rephraser' -Force -ErrorAction SilentlyContinue&quot;"
                   Impersonate="yes" Return="ignore" />
 
     <!-- Launch app after install -->
