@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Drawing;
+using System.Drawing.Drawing2D;
 using System.Linq;
 using System.Net.Http;
 using System.Text.Json;
@@ -70,156 +71,279 @@ public sealed class SettingsForm : Form
         ("Anthropic Claude",  ApiProvider.Anthropic,        "https://api.anthropic.com/v1/messages",      "claude-sonnet-4-20250514")
     ];
 
+    // ── Palette ─────────────────────────────────────────────────────────────
+    private static readonly Color BgPage       = Color.FromArgb(248, 250, 252); // slate-50
+    private static readonly Color BgCard       = Color.White;
+    private static readonly Color BorderCard   = Color.FromArgb(226, 232, 240); // slate-200
+    private static readonly Color AccentPrimary = Color.FromArgb(99, 102, 241); // indigo-500
+    private static readonly Color AccentHover  = Color.FromArgb(79,  70, 229);  // indigo-600
+    private static readonly Color TextBody     = Color.FromArgb(51,  65,  85);  // slate-700
+    private static readonly Color TextMuted    = Color.FromArgb(148, 163, 184); // slate-400
+
+    // ── Card panel ──────────────────────────────────────────────────────────
+    private sealed class SectionCard : Panel
+    {
+        public SectionCard()
+        {
+            BackColor = BgCard;
+            DoubleBuffered = true;
+            SetStyle(ControlStyles.ResizeRedraw, true);
+        }
+
+        protected override void OnPaint(PaintEventArgs e)
+        {
+            base.OnPaint(e);
+            e.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
+            using var pen = new Pen(BorderCard, 1f);
+            e.Graphics.DrawRectangle(pen, 0, 0, Width - 1, Height - 1);
+        }
+    }
+
+    // ── Button factories ────────────────────────────────────────────────────
+    private static Button MakePrimary(string text, int w, int h)
+    {
+        var btn = new Button
+        {
+            Text = text,
+            Size = new Size(w, h),
+            FlatStyle = FlatStyle.Flat,
+            BackColor = AccentPrimary,
+            ForeColor = Color.White,
+            Font = new Font("Segoe UI", 9f, FontStyle.Bold),
+            Cursor = Cursors.Hand
+        };
+        btn.FlatAppearance.BorderSize = 0;
+        btn.FlatAppearance.MouseOverBackColor = AccentHover;
+        return btn;
+    }
+
+    private static Button MakeSecondary(string text, int w, int h)
+    {
+        var btn = new Button
+        {
+            Text = text,
+            Size = new Size(w, h),
+            FlatStyle = FlatStyle.Flat,
+            BackColor = Color.White,
+            ForeColor = TextBody,
+            Font = new Font("Segoe UI", 9f),
+            Cursor = Cursors.Hand
+        };
+        btn.FlatAppearance.BorderColor = BorderCard;
+        btn.FlatAppearance.BorderSize = 1;
+        btn.FlatAppearance.MouseOverBackColor = BgPage;
+        return btn;
+    }
+
+    private static Label MakeSectionLabel(string text) => new()
+    {
+        Text = text,
+        AutoSize = true,
+        ForeColor = TextMuted,
+        Font = new Font("Segoe UI", 7.5f, FontStyle.Bold),
+        BackColor = Color.Transparent
+    };
+
+    // ═════════════════════════════════════════════════════════════════════════
+    //  Constructor
+    // ═════════════════════════════════════════════════════════════════════════
     public SettingsForm(AppConfig config)
     {
         _config = config;
 
         Text = "LLM-Rephraser Settings";
-        ClientSize = new Size(520, 560);
+        ClientSize = new Size(540, 580);
         FormBorderStyle = FormBorderStyle.FixedDialog;
         MaximizeBox = false;
         MinimizeBox = false;
         StartPosition = FormStartPosition.CenterScreen;
         Font = new Font("Segoe UI", 9f);
+        BackColor = BgPage;
 
+        // ── Tab control with owner-drawn tabs ──
         var tabControl = new TabControl
         {
             Location = new Point(8, 8),
-            Size = new Size(504, 510),
+            Size = new Size(524, 528),
+            DrawMode = TabDrawMode.OwnerDrawFixed,
+            SizeMode = TabSizeMode.Fixed,
+            ItemSize = new Size(130, 32),
             Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right | AnchorStyles.Bottom
+        };
+        tabControl.DrawItem += (s, e) =>
+        {
+            var tc = (TabControl)s!;
+            var selected = tc.SelectedIndex == e.Index;
+
+            using var bg = new SolidBrush(BgPage);
+            e.Graphics.FillRectangle(bg, e.Bounds);
+
+            var color = selected ? AccentPrimary : TextMuted;
+            using var brush = new SolidBrush(color);
+            using var font = new Font("Segoe UI", 9f, selected ? FontStyle.Bold : FontStyle.Regular);
+            var sf = new StringFormat { Alignment = StringAlignment.Center, LineAlignment = StringAlignment.Center };
+            e.Graphics.DrawString(tc.TabPages[e.Index].Text, font, brush, e.Bounds, sf);
+
+            if (selected)
+            {
+                using var pen = new Pen(AccentPrimary, 2.5f);
+                e.Graphics.DrawLine(pen, e.Bounds.Left + 10, e.Bounds.Bottom - 1, e.Bounds.Right - 10, e.Bounds.Bottom - 1);
+            }
         };
 
         // ════════════════════════════════════════
         //  TAB 1: Settings
         // ════════════════════════════════════════
-        var settingsTab = new TabPage("Settings") { Padding = new Padding(4) };
+        var settingsTab = new TabPage("Settings") { BackColor = BgPage, Padding = new Padding(4) };
 
-        // ── Profile GroupBox ──
-        var profileGroup = new GroupBox
-        {
-            Text = "Profile",
-            Location = new Point(8, 8),
-            Size = new Size(480, 60)
-        };
+        const int cardW = 496;
+        const int cardX = 4;
+        const int innerPad = 14;
+
+        // ── Profile card ──
+        var profileCard = new SectionCard { Location = new Point(cardX, 4), Size = new Size(cardW, 52) };
 
         _profileBox = new ComboBox
         {
             DropDownStyle = ComboBoxStyle.DropDownList,
-            Location = new Point(12, 24),
+            Location = new Point(innerPad, 14),
             Size = new Size(220, 23)
         };
         _profileBox.SelectedIndexChanged += ProfileBox_Changed;
 
-        _addButton = new Button { Text = "New...", Location = new Point(242, 23), Size = new Size(65, 25) };
+        _addButton = MakeSecondary("New...", 65, 27);
+        _addButton.Location = new Point(246, 13);
         _addButton.Click += AddProfile_Click;
 
-        _renameButton = new Button { Text = "Rename...", Location = new Point(313, 23), Size = new Size(72, 25) };
+        _renameButton = MakeSecondary("Rename...", 76, 27);
+        _renameButton.Location = new Point(317, 13);
         _renameButton.Click += RenameProfile_Click;
 
-        _deleteButton = new Button { Text = "Delete", Location = new Point(391, 23), Size = new Size(57, 25) };
+        _deleteButton = MakeSecondary("Delete", 60, 27);
+        _deleteButton.Location = new Point(399, 13);
         _deleteButton.Click += DeleteProfile_Click;
 
-        profileGroup.Controls.AddRange([_profileBox, _addButton, _renameButton, _deleteButton]);
+        profileCard.Controls.AddRange([_profileBox, _addButton, _renameButton, _deleteButton]);
 
-        // ── Connection GroupBox ──
-        var connectionGroup = new GroupBox
-        {
-            Text = "Connection",
-            Location = new Point(8, 76),
-            Size = new Size(480, 222)
-        };
+        // ── Connection card ──
+        var connectionCard = new SectionCard { Location = new Point(cardX, 64), Size = new Size(cardW, 210) };
 
-        var providerLabel = new Label { Text = "&Provider:", Location = new Point(12, 24), Size = new Size(100, 17), TextAlign = ContentAlignment.MiddleLeft };
-        _providerBox = new ComboBox { DropDownStyle = ComboBoxStyle.DropDownList, Location = new Point(120, 22), Size = new Size(346, 23) };
+        var connLabel = MakeSectionLabel("CONNECTION");
+        connLabel.Location = new Point(innerPad, 10);
+
+        var providerLabel = new Label { Text = "Provider:", Location = new Point(innerPad, 36), Size = new Size(90, 17), TextAlign = ContentAlignment.MiddleLeft, ForeColor = TextBody, BackColor = Color.Transparent };
+        _providerBox = new ComboBox { DropDownStyle = ComboBoxStyle.DropDownList, Location = new Point(110, 34), Size = new Size(370, 23) };
         foreach (var (label, _, _, _) in Providers) _providerBox.Items.Add(label);
         _providerBox.SelectedIndexChanged += ProviderBox_Changed;
 
-        var endpointLabel = new Label { Text = "&Endpoint URL:", Location = new Point(12, 58), Size = new Size(100, 17), TextAlign = ContentAlignment.MiddleLeft };
-        _endpointBox = new TextBox { Location = new Point(120, 56), Size = new Size(346, 23) };
+        var endpointLabel = new Label { Text = "Endpoint:", Location = new Point(innerPad, 68), Size = new Size(90, 17), TextAlign = ContentAlignment.MiddleLeft, ForeColor = TextBody, BackColor = Color.Transparent };
+        _endpointBox = new TextBox { Location = new Point(110, 66), Size = new Size(370, 23) };
 
-        var apiKeyLabel = new Label { Text = "API &Key:", Location = new Point(12, 92), Size = new Size(100, 17), TextAlign = ContentAlignment.MiddleLeft };
-        _apiKeyBox = new TextBox { Location = new Point(120, 90), Size = new Size(346, 23), UseSystemPasswordChar = true };
-        var apiKeyHint = new Label { Text = "Leave blank if not required", Location = new Point(120, 115), AutoSize = true, ForeColor = SystemColors.GrayText, Font = new Font("Segoe UI", 8f) };
+        var apiKeyLabel = new Label { Text = "API Key:", Location = new Point(innerPad, 100), Size = new Size(90, 17), TextAlign = ContentAlignment.MiddleLeft, ForeColor = TextBody, BackColor = Color.Transparent };
+        _apiKeyBox = new TextBox { Location = new Point(110, 98), Size = new Size(370, 23), UseSystemPasswordChar = true };
+        var apiKeyHint = new Label { Text = "Leave blank if not required", Location = new Point(110, 122), AutoSize = true, ForeColor = TextMuted, Font = new Font("Segoe UI", 7.5f), BackColor = Color.Transparent };
 
-        var modelLabel = new Label { Text = "&Model:", Location = new Point(12, 140), Size = new Size(100, 17), TextAlign = ContentAlignment.MiddleLeft };
-        _modelBox = new TextBox { Location = new Point(120, 138), Size = new Size(346, 23) };
+        var modelLabel = new Label { Text = "Model:", Location = new Point(innerPad, 144), Size = new Size(90, 17), TextAlign = ContentAlignment.MiddleLeft, ForeColor = TextBody, BackColor = Color.Transparent };
+        _modelBox = new TextBox { Location = new Point(110, 142), Size = new Size(370, 23) };
 
-        var separator = new Label { BorderStyle = BorderStyle.Fixed3D, Location = new Point(12, 178), Size = new Size(456, 2) };
-        _testButton = new Button { Text = "&Test Connection", Location = new Point(12, 192), Size = new Size(120, 28) };
+        _testButton = MakeSecondary("&Test Connection", 120, 28);
+        _testButton.Location = new Point(innerPad, 174);
         _testButton.Click += TestButton_Click;
-        _testResultLabel = new Label { Text = "", Location = new Point(140, 198), Size = new Size(326, 17), TextAlign = ContentAlignment.MiddleLeft };
+        _testResultLabel = new Label { Text = "", Location = new Point(142, 180), Size = new Size(338, 17), TextAlign = ContentAlignment.MiddleLeft, BackColor = Color.Transparent };
 
-        connectionGroup.Controls.AddRange([providerLabel, _providerBox, endpointLabel, _endpointBox, apiKeyLabel, _apiKeyBox, apiKeyHint, modelLabel, _modelBox, separator, _testButton, _testResultLabel]);
+        connectionCard.Controls.AddRange([connLabel, providerLabel, _providerBox, endpointLabel, _endpointBox, apiKeyLabel, _apiKeyBox, apiKeyHint, modelLabel, _modelBox, _testButton, _testResultLabel]);
 
-        // ── Translation Languages ──
-        var langGroup = new GroupBox { Text = "Translation Languages", Location = new Point(8, 306), Size = new Size(480, 100) };
-        _langListBox = new ListBox { Location = new Point(12, 20), Size = new Size(376, 68), SelectionMode = SelectionMode.One };
+        // ── Translation Languages card ──
+        var langCard = new SectionCard { Location = new Point(cardX, 282), Size = new Size(cardW, 98) };
+
+        var langLabel = MakeSectionLabel("TRANSLATION LANGUAGES");
+        langLabel.Location = new Point(innerPad, 10);
+
+        _langListBox = new ListBox { Location = new Point(innerPad, 32), Size = new Size(380, 56), SelectionMode = SelectionMode.One, BorderStyle = BorderStyle.FixedSingle };
         foreach (var lang in _config.TranslationLanguages) _langListBox.Items.Add(lang);
-        _langAddButton = new Button { Text = "Add...", Location = new Point(396, 20), Size = new Size(72, 25) };
+
+        _langAddButton = MakeSecondary("Add...", 72, 27);
+        _langAddButton.Location = new Point(406, 32);
         _langAddButton.Click += LangAdd_Click;
-        _langRemoveButton = new Button { Text = "Remove", Location = new Point(396, 50), Size = new Size(72, 25) };
+
+        _langRemoveButton = MakeSecondary("Remove", 72, 27);
+        _langRemoveButton.Location = new Point(406, 63);
         _langRemoveButton.Click += LangRemove_Click;
-        langGroup.Controls.AddRange([_langListBox, _langAddButton, _langRemoveButton]);
 
-        // ── Options ──
-        var optionsGroup = new GroupBox { Text = "Options", Location = new Point(8, 414), Size = new Size(480, 62) };
-        _shiftRightClickBox = new CheckBox { Text = "Enable Shift+Right-Click to open style picker", Location = new Point(12, 18), AutoSize = true, Checked = _config.ShiftRightClickEnabled };
-        _startWithWindowsBox = new CheckBox { Text = "Start LLM-Rephraser with Windows", Location = new Point(12, 40), AutoSize = true, Checked = AppConfig.ReadStartWithWindows() };
-        optionsGroup.Controls.AddRange([_shiftRightClickBox, _startWithWindowsBox]);
+        langCard.Controls.AddRange([langLabel, _langListBox, _langAddButton, _langRemoveButton]);
 
-        settingsTab.Controls.AddRange([profileGroup, connectionGroup, langGroup, optionsGroup]);
+        // ── Options card ──
+        var optionsCard = new SectionCard { Location = new Point(cardX, 388), Size = new Size(cardW, 72) };
+
+        var optLabel = MakeSectionLabel("OPTIONS");
+        optLabel.Location = new Point(innerPad, 10);
+
+        _shiftRightClickBox = new CheckBox { Text = "Enable Shift+Right-Click to open style picker", Location = new Point(innerPad, 30), AutoSize = true, Checked = _config.ShiftRightClickEnabled, ForeColor = TextBody, BackColor = Color.Transparent };
+        _startWithWindowsBox = new CheckBox { Text = "Start LLM-Rephraser with Windows", Location = new Point(innerPad, 50), AutoSize = true, Checked = AppConfig.ReadStartWithWindows(), ForeColor = TextBody, BackColor = Color.Transparent };
+
+        optionsCard.Controls.AddRange([optLabel, _shiftRightClickBox, _startWithWindowsBox]);
+
+        settingsTab.Controls.AddRange([profileCard, connectionCard, langCard, optionsCard]);
 
         // ════════════════════════════════════════
         //  TAB 2: OpenRouter Free Models
         // ════════════════════════════════════════
-        var openRouterTab = new TabPage("OpenRouter") { Padding = new Padding(4) };
+        var openRouterTab = new TabPage("OpenRouter") { BackColor = BgPage, Padding = new Padding(4) };
+
+        var orCard = new SectionCard { Location = new Point(cardX, 4), Size = new Size(cardW, 456) };
+
+        var orSectionLabel = MakeSectionLabel("BROWSE FREE MODELS");
+        orSectionLabel.Location = new Point(innerPad, 10);
 
         var orDescription = new Label
         {
-            Text = "Browse free models from OpenRouter.ai and create a profile with one click. You only need to supply your OpenRouter API key.",
-            Location = new Point(8, 8),
-            Size = new Size(480, 34),
-            ForeColor = SystemColors.GrayText
+            Text = "Browse free models from OpenRouter.ai and create a profile with one click.",
+            Location = new Point(innerPad, 28),
+            Size = new Size(468, 18),
+            ForeColor = TextMuted,
+            Font = new Font("Segoe UI", 8f),
+            BackColor = Color.Transparent
         };
 
-        _fetchButton = new Button { Text = "Fetch Free Models", Location = new Point(8, 48), Size = new Size(140, 28) };
+        _fetchButton = MakeSecondary("Fetch Free Models", 140, 28);
+        _fetchButton.Location = new Point(innerPad, 52);
         _fetchButton.Click += FetchModels_Click;
 
-        _orStatusLabel = new Label { Text = "", Location = new Point(156, 54), Size = new Size(330, 17), TextAlign = ContentAlignment.MiddleLeft };
+        _orStatusLabel = new Label { Text = "", Location = new Point(162, 58), Size = new Size(320, 17), TextAlign = ContentAlignment.MiddleLeft, BackColor = Color.Transparent };
 
-        var searchLabel = new Label { Text = "Search:", Location = new Point(8, 86), Size = new Size(50, 17), TextAlign = ContentAlignment.MiddleLeft };
-        _orSearchBox = new TextBox { Location = new Point(60, 84), Size = new Size(200, 23) };
+        var searchLabel = new Label { Text = "Search:", Location = new Point(innerPad, 90), Size = new Size(50, 17), TextAlign = ContentAlignment.MiddleLeft, ForeColor = TextBody, BackColor = Color.Transparent };
+        _orSearchBox = new TextBox { Location = new Point(68, 88), Size = new Size(200, 23) };
         _orSearchBox.TextChanged += OrSearch_Changed;
 
         _modelListView = new ListView
         {
-            Location = new Point(8, 114),
-            Size = new Size(480, 310),
+            Location = new Point(innerPad, 118),
+            Size = new Size(468, 264),
             View = View.Details,
             FullRowSelect = true,
             GridLines = true,
             MultiSelect = false,
-            HideSelection = false
+            HideSelection = false,
+            BorderStyle = BorderStyle.FixedSingle
         };
-        _modelListView.Columns.Add("Model Name", 220);
+        _modelListView.Columns.Add("Model Name", 210);
         _modelListView.Columns.Add("ID", 160);
         _modelListView.Columns.Add("Context", 80, HorizontalAlignment.Right);
 
-        _createProfileButton = new Button
-        {
-            Text = "Create Profile from Selected",
-            Location = new Point(8, 432),
-            Size = new Size(200, 30),
-            Enabled = false
-        };
+        _createProfileButton = MakePrimary("Create Profile from Selected", 210, 30);
+        _createProfileButton.Location = new Point(innerPad, 390);
+        _createProfileButton.Enabled = false;
         _createProfileButton.Click += CreateProfileFromModel_Click;
         _modelListView.SelectedIndexChanged += (_, _) => _createProfileButton.Enabled = _modelListView.SelectedItems.Count > 0;
 
         var orKeyLink = new LinkLabel
         {
             Text = "Get your OpenRouter API key",
-            Location = new Point(220, 438),
-            AutoSize = true
+            Location = new Point(234, 396),
+            AutoSize = true,
+            LinkColor = AccentPrimary,
+            ActiveLinkColor = AccentHover,
+            BackColor = Color.Transparent
         };
         orKeyLink.LinkClicked += (_, _) =>
         {
@@ -230,62 +354,71 @@ public sealed class SettingsForm : Form
             });
         };
 
-        openRouterTab.Controls.AddRange([orDescription, _fetchButton, _orStatusLabel, searchLabel, _orSearchBox, _modelListView, _createProfileButton, orKeyLink]);
+        orCard.Controls.AddRange([orSectionLabel, orDescription, _fetchButton, _orStatusLabel, searchLabel, _orSearchBox, _modelListView, _createProfileButton, orKeyLink]);
+        openRouterTab.Controls.Add(orCard);
 
         // ════════════════════════════════════════
         //  TAB 3: Google AI Studio
         // ════════════════════════════════════════
-        var gaiTab = new TabPage("Google AI Studio") { Padding = new Padding(4) };
+        var gaiTab = new TabPage("Google AI Studio") { BackColor = BgPage, Padding = new Padding(4) };
+
+        var gaiCard = new SectionCard { Location = new Point(cardX, 4), Size = new Size(cardW, 456) };
+
+        var gaiSectionLabel = MakeSectionLabel("BROWSE GEMINI MODELS");
+        gaiSectionLabel.Location = new Point(innerPad, 10);
 
         var gaiDescription = new Label
         {
             Text = "Browse Gemini models from Google AI Studio and create a profile with one click.",
-            Location = new Point(8, 8),
-            Size = new Size(480, 20),
-            ForeColor = SystemColors.GrayText
+            Location = new Point(innerPad, 28),
+            Size = new Size(468, 18),
+            ForeColor = TextMuted,
+            Font = new Font("Segoe UI", 8f),
+            BackColor = Color.Transparent
         };
 
-        var gaiKeyLabel = new Label { Text = "API Key:", Location = new Point(8, 38), Size = new Size(55, 17), TextAlign = ContentAlignment.MiddleLeft };
-        _gaiApiKeyBox = new TextBox { Location = new Point(65, 36), Size = new Size(260, 23), UseSystemPasswordChar = true };
+        var gaiKeyLabel = new Label { Text = "API Key:", Location = new Point(innerPad, 56), Size = new Size(55, 17), TextAlign = ContentAlignment.MiddleLeft, ForeColor = TextBody, BackColor = Color.Transparent };
+        _gaiApiKeyBox = new TextBox { Location = new Point(73, 54), Size = new Size(260, 23), UseSystemPasswordChar = true };
 
-        _gaiFetchButton = new Button { Text = "Fetch Models", Location = new Point(335, 35), Size = new Size(100, 25) };
+        _gaiFetchButton = MakeSecondary("Fetch Models", 100, 27);
+        _gaiFetchButton.Location = new Point(343, 53);
         _gaiFetchButton.Click += GaiFetchModels_Click;
 
-        _gaiStatusLabel = new Label { Text = "", Location = new Point(8, 66), Size = new Size(480, 17), TextAlign = ContentAlignment.MiddleLeft };
+        _gaiStatusLabel = new Label { Text = "", Location = new Point(innerPad, 84), Size = new Size(468, 17), TextAlign = ContentAlignment.MiddleLeft, BackColor = Color.Transparent };
 
-        var gaiSearchLabel = new Label { Text = "Search:", Location = new Point(8, 90), Size = new Size(50, 17), TextAlign = ContentAlignment.MiddleLeft };
-        _gaiSearchBox = new TextBox { Location = new Point(60, 88), Size = new Size(200, 23) };
+        var gaiSearchLabel = new Label { Text = "Search:", Location = new Point(innerPad, 108), Size = new Size(50, 17), TextAlign = ContentAlignment.MiddleLeft, ForeColor = TextBody, BackColor = Color.Transparent };
+        _gaiSearchBox = new TextBox { Location = new Point(68, 106), Size = new Size(200, 23) };
         _gaiSearchBox.TextChanged += GaiSearch_Changed;
 
         _gaiModelListView = new ListView
         {
-            Location = new Point(8, 118),
-            Size = new Size(480, 296),
+            Location = new Point(innerPad, 136),
+            Size = new Size(468, 244),
             View = View.Details,
             FullRowSelect = true,
             GridLines = true,
             MultiSelect = false,
-            HideSelection = false
+            HideSelection = false,
+            BorderStyle = BorderStyle.FixedSingle
         };
-        _gaiModelListView.Columns.Add("Display Name", 200);
+        _gaiModelListView.Columns.Add("Display Name", 190);
         _gaiModelListView.Columns.Add("Model ID", 170);
         _gaiModelListView.Columns.Add("Context", 80, HorizontalAlignment.Right);
 
-        _gaiCreateProfileButton = new Button
-        {
-            Text = "Create Profile from Selected",
-            Location = new Point(8, 422),
-            Size = new Size(200, 30),
-            Enabled = false
-        };
+        _gaiCreateProfileButton = MakePrimary("Create Profile from Selected", 210, 30);
+        _gaiCreateProfileButton.Location = new Point(innerPad, 388);
+        _gaiCreateProfileButton.Enabled = false;
         _gaiCreateProfileButton.Click += GaiCreateProfile_Click;
         _gaiModelListView.SelectedIndexChanged += (_, _) => _gaiCreateProfileButton.Enabled = _gaiModelListView.SelectedItems.Count > 0;
 
         var gaiKeyLink = new LinkLabel
         {
             Text = "Get your Google AI Studio API key",
-            Location = new Point(220, 428),
-            AutoSize = true
+            Location = new Point(234, 394),
+            AutoSize = true,
+            LinkColor = AccentPrimary,
+            ActiveLinkColor = AccentHover,
+            BackColor = Color.Transparent
         };
         gaiKeyLink.LinkClicked += (_, _) =>
         {
@@ -296,58 +429,67 @@ public sealed class SettingsForm : Form
             });
         };
 
-        gaiTab.Controls.AddRange([gaiDescription, gaiKeyLabel, _gaiApiKeyBox, _gaiFetchButton, _gaiStatusLabel, gaiSearchLabel, _gaiSearchBox, _gaiModelListView, _gaiCreateProfileButton, gaiKeyLink]);
+        gaiCard.Controls.AddRange([gaiSectionLabel, gaiDescription, gaiKeyLabel, _gaiApiKeyBox, _gaiFetchButton, _gaiStatusLabel, gaiSearchLabel, _gaiSearchBox, _gaiModelListView, _gaiCreateProfileButton, gaiKeyLink]);
+        gaiTab.Controls.Add(gaiCard);
 
         // ════════════════════════════════════════
         //  TAB 4: NVIDIA Build
         // ════════════════════════════════════════
-        var nvTab = new TabPage("NVIDIA") { Padding = new Padding(4) };
+        var nvTab = new TabPage("NVIDIA") { BackColor = BgPage, Padding = new Padding(4) };
+
+        var nvCard = new SectionCard { Location = new Point(cardX, 4), Size = new Size(cardW, 456) };
+
+        var nvSectionLabel = MakeSectionLabel("BROWSE NVIDIA MODELS");
+        nvSectionLabel.Location = new Point(innerPad, 10);
 
         var nvDescription = new Label
         {
-            Text = "Browse models from NVIDIA Build (build.nvidia.com) and create a profile with one click. You only need to supply your NVIDIA API key.",
-            Location = new Point(8, 8),
-            Size = new Size(480, 34),
-            ForeColor = SystemColors.GrayText
+            Text = "Browse models from NVIDIA Build and create a profile with one click.",
+            Location = new Point(innerPad, 28),
+            Size = new Size(468, 18),
+            ForeColor = TextMuted,
+            Font = new Font("Segoe UI", 8f),
+            BackColor = Color.Transparent
         };
 
-        _nvFetchButton = new Button { Text = "Fetch Models", Location = new Point(8, 48), Size = new Size(120, 28) };
+        _nvFetchButton = MakeSecondary("Fetch Models", 120, 28);
+        _nvFetchButton.Location = new Point(innerPad, 52);
         _nvFetchButton.Click += NvFetchModels_Click;
 
-        _nvStatusLabel = new Label { Text = "", Location = new Point(136, 54), Size = new Size(350, 17), TextAlign = ContentAlignment.MiddleLeft };
+        _nvStatusLabel = new Label { Text = "", Location = new Point(142, 58), Size = new Size(340, 17), TextAlign = ContentAlignment.MiddleLeft, BackColor = Color.Transparent };
 
-        var nvSearchLabel = new Label { Text = "Search:", Location = new Point(8, 86), Size = new Size(50, 17), TextAlign = ContentAlignment.MiddleLeft };
-        _nvSearchBox = new TextBox { Location = new Point(60, 84), Size = new Size(200, 23) };
+        var nvSearchLabel = new Label { Text = "Search:", Location = new Point(innerPad, 90), Size = new Size(50, 17), TextAlign = ContentAlignment.MiddleLeft, ForeColor = TextBody, BackColor = Color.Transparent };
+        _nvSearchBox = new TextBox { Location = new Point(68, 88), Size = new Size(200, 23) };
         _nvSearchBox.TextChanged += NvSearch_Changed;
 
         _nvModelListView = new ListView
         {
-            Location = new Point(8, 114),
-            Size = new Size(480, 310),
+            Location = new Point(innerPad, 118),
+            Size = new Size(468, 264),
             View = View.Details,
             FullRowSelect = true,
             GridLines = true,
             MultiSelect = false,
-            HideSelection = false
+            HideSelection = false,
+            BorderStyle = BorderStyle.FixedSingle
         };
-        _nvModelListView.Columns.Add("Model ID", 300);
+        _nvModelListView.Columns.Add("Model ID", 290);
         _nvModelListView.Columns.Add("Owner", 160);
 
-        _nvCreateProfileButton = new Button
-        {
-            Text = "Create Profile from Selected",
-            Location = new Point(8, 432),
-            Size = new Size(200, 30),
-            Enabled = false
-        };
+        _nvCreateProfileButton = MakePrimary("Create Profile from Selected", 210, 30);
+        _nvCreateProfileButton.Location = new Point(innerPad, 390);
+        _nvCreateProfileButton.Enabled = false;
         _nvCreateProfileButton.Click += NvCreateProfile_Click;
         _nvModelListView.SelectedIndexChanged += (_, _) => _nvCreateProfileButton.Enabled = _nvModelListView.SelectedItems.Count > 0;
 
         var nvKeyLink = new LinkLabel
         {
             Text = "Get your NVIDIA API key",
-            Location = new Point(220, 438),
-            AutoSize = true
+            Location = new Point(234, 396),
+            AutoSize = true,
+            LinkColor = AccentPrimary,
+            ActiveLinkColor = AccentHover,
+            BackColor = Color.Transparent
         };
         nvKeyLink.LinkClicked += (_, _) =>
         {
@@ -358,18 +500,24 @@ public sealed class SettingsForm : Form
             });
         };
 
-        nvTab.Controls.AddRange([nvDescription, _nvFetchButton, _nvStatusLabel, nvSearchLabel, _nvSearchBox, _nvModelListView, _nvCreateProfileButton, nvKeyLink]);
+        nvCard.Controls.AddRange([nvSectionLabel, nvDescription, _nvFetchButton, _nvStatusLabel, nvSearchLabel, _nvSearchBox, _nvModelListView, _nvCreateProfileButton, nvKeyLink]);
+        nvTab.Controls.Add(nvCard);
 
+        // ── Assemble tabs ──
         tabControl.TabPages.Add(settingsTab);
         tabControl.TabPages.Add(openRouterTab);
         tabControl.TabPages.Add(gaiTab);
         tabControl.TabPages.Add(nvTab);
 
         // ── Bottom buttons ──
-        _saveButton = new Button { Text = "OK", Location = new Point(352, 524), Size = new Size(75, 28), Anchor = AnchorStyles.Bottom | AnchorStyles.Right };
+        _saveButton = MakePrimary("OK", 80, 30);
+        _saveButton.Location = new Point(368, 544);
+        _saveButton.Anchor = AnchorStyles.Bottom | AnchorStyles.Right;
         _saveButton.Click += SaveButton_Click;
 
-        _cancelButton = new Button { Text = "Cancel", Location = new Point(433, 524), Size = new Size(75, 28), Anchor = AnchorStyles.Bottom | AnchorStyles.Right };
+        _cancelButton = MakeSecondary("Cancel", 80, 30);
+        _cancelButton.Location = new Point(452, 544);
+        _cancelButton.Anchor = AnchorStyles.Bottom | AnchorStyles.Right;
         _cancelButton.Click += (_, _) => { DialogResult = DialogResult.Cancel; Close(); };
 
         Controls.AddRange([tabControl, _saveButton, _cancelButton]);
@@ -986,22 +1134,36 @@ public sealed class SettingsForm : Form
         using var dlg = new Form
         {
             Text = title,
-            ClientSize = new Size(320, 105),
+            ClientSize = new Size(340, 115),
             FormBorderStyle = FormBorderStyle.FixedDialog,
             MaximizeBox = false,
             MinimizeBox = false,
             StartPosition = FormStartPosition.CenterParent,
+            BackColor = BgPage,
             Font = Font
         };
 
-        var lbl = new Label { Text = labelText, Location = new Point(12, 12), AutoSize = true };
-        var txt = new TextBox { Text = defaultValue, Location = new Point(12, 32), Size = new Size(296, 23) };
+        var card = new SectionCard
+        {
+            Location = new Point(12, 8),
+            Size = new Size(316, 60)
+        };
+
+        var lbl = new Label { Text = labelText, Location = new Point(12, 8), AutoSize = true, ForeColor = TextBody, BackColor = Color.Transparent };
+        var txt = new TextBox { Text = defaultValue, Location = new Point(12, 30), Size = new Size(292, 23) };
         txt.SelectAll();
 
-        var ok = new Button { Text = "OK", DialogResult = DialogResult.OK, Location = new Point(152, 68), Size = new Size(75, 25) };
-        var cancel = new Button { Text = "Cancel", DialogResult = DialogResult.Cancel, Location = new Point(233, 68), Size = new Size(75, 25) };
+        card.Controls.AddRange([lbl, txt]);
 
-        dlg.Controls.AddRange([lbl, txt, ok, cancel]);
+        var ok = MakePrimary("OK", 75, 27);
+        ok.Location = new Point(172, 78);
+        ok.DialogResult = DialogResult.OK;
+
+        var cancel = MakeSecondary("Cancel", 75, 27);
+        cancel.Location = new Point(253, 78);
+        cancel.DialogResult = DialogResult.Cancel;
+
+        dlg.Controls.AddRange([card, ok, cancel]);
         dlg.AcceptButton = ok;
         dlg.CancelButton = cancel;
 

@@ -190,6 +190,15 @@ public sealed class TrayApplicationContext : ApplicationContext
             _mouseHook.Uninstall();
     }
 
+    // ── About dialog palette ──
+    private static readonly Color _bgPage       = Color.FromArgb(248, 250, 252);
+    private static readonly Color _bgCard        = Color.White;
+    private static readonly Color _borderCard    = Color.FromArgb(226, 232, 240);
+    private static readonly Color _accentPrimary = Color.FromArgb(99, 102, 241);
+    private static readonly Color _accentHover   = Color.FromArgb(79,  70, 229);
+    private static readonly Color _textBody      = Color.FromArgb(51,  65,  85);
+    private static readonly Color _textMuted     = Color.FromArgb(148, 163, 184);
+
     private void ShowAbout()
     {
         var version = System.Reflection.Assembly.GetExecutingAssembly().GetName().Version;
@@ -198,43 +207,66 @@ public sealed class TrayApplicationContext : ApplicationContext
         using var dlg = new Form
         {
             Text = "About LLM-Rephraser",
-            ClientSize = new Size(360, 200),
+            ClientSize = new Size(380, 220),
             FormBorderStyle = FormBorderStyle.FixedDialog,
             MaximizeBox = false,
             MinimizeBox = false,
             StartPosition = FormStartPosition.CenterScreen,
+            BackColor = _bgPage,
             Font = new Font("Segoe UI", 9f),
             Icon = _trayIcon.Icon
+        };
+
+        // Card panel
+        var card = new Panel
+        {
+            Location = new Point(16, 12),
+            Size = new Size(348, 150),
+            BackColor = _bgCard
+        };
+        card.Paint += (s, e) =>
+        {
+            using var pen = new Pen(_borderCard, 1f);
+            e.Graphics.DrawRectangle(pen, 0, 0, card.Width - 1, card.Height - 1);
         };
 
         var title = new Label
         {
             Text = "LLM-Rephraser",
-            Location = new Point(20, 16),
+            Location = new Point(18, 14),
             AutoSize = true,
-            Font = new Font("Segoe UI", 14f, FontStyle.Bold)
+            ForeColor = _textBody,
+            Font = new Font("Segoe UI", 15f, FontStyle.Bold),
+            BackColor = Color.Transparent
         };
 
         var versionLabel = new Label
         {
-            Text = $"Version {ver}",
-            Location = new Point(22, 48),
+            Text = $"v{ver}",
+            Location = new Point(186, 20),
             AutoSize = true,
-            ForeColor = SystemColors.GrayText
+            ForeColor = _accentPrimary,
+            Font = new Font("Segoe UI", 9f, FontStyle.Bold),
+            BackColor = Color.Transparent
         };
 
         var desc = new Label
         {
             Text = "A Windows system tray tool for rephrasing,\ntranslating, and fixing text in any application\nusing LLM APIs.",
-            Location = new Point(22, 76),
-            Size = new Size(320, 50)
+            Location = new Point(18, 52),
+            Size = new Size(320, 50),
+            ForeColor = _textBody,
+            BackColor = Color.Transparent
         };
 
         var link = new LinkLabel
         {
             Text = "github.com/davidturchak/LLM-rephraser",
-            Location = new Point(22, 130),
-            AutoSize = true
+            Location = new Point(18, 112),
+            AutoSize = true,
+            LinkColor = _accentPrimary,
+            ActiveLinkColor = _accentHover,
+            BackColor = Color.Transparent
         };
         link.LinkClicked += (_, _) =>
         {
@@ -245,15 +277,24 @@ public sealed class TrayApplicationContext : ApplicationContext
             });
         };
 
+        card.Controls.AddRange([title, versionLabel, desc, link]);
+
         var okButton = new Button
         {
             Text = "OK",
-            Location = new Point(268, 164),
-            Size = new Size(75, 28),
+            Location = new Point(289, 174),
+            Size = new Size(75, 30),
+            FlatStyle = FlatStyle.Flat,
+            BackColor = _accentPrimary,
+            ForeColor = Color.White,
+            Font = new Font("Segoe UI", 9f, FontStyle.Bold),
+            Cursor = Cursors.Hand,
             DialogResult = DialogResult.OK
         };
+        okButton.FlatAppearance.BorderSize = 0;
+        okButton.FlatAppearance.MouseOverBackColor = _accentHover;
 
-        dlg.Controls.AddRange([title, versionLabel, desc, link, okButton]);
+        dlg.Controls.AddRange([card, okButton]);
         dlg.AcceptButton = okButton;
         dlg.ShowDialog();
     }
