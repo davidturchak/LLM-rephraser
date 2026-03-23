@@ -315,6 +315,16 @@ public sealed class SettingsForm : SfForm
 
         Controls.AddRange([tabControl, _saveButton, _cancelButton]);
         AcceptButton = _saveButton; CancelButton = _cancelButton;
+
+        // After AutoScaleMode + SfForm chrome are applied, cap to screen
+        Load += (_, _) =>
+        {
+            var screen = Screen.FromControl(this).WorkingArea;
+            if (Width > screen.Width - 20) Width = screen.Width - 20;
+            if (Height > screen.Height - 20) Height = screen.Height - 20;
+            CenterToScreen();
+        };
+
         RefreshProfileList(_config.ActiveProfile);
     }
 

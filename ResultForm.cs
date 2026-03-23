@@ -352,6 +352,15 @@ public sealed class ResultForm : SfForm
         acceptButton.TabIndex  = 1;
         cancelButton.TabIndex  = 2;
 
+        // After AutoScaleMode + SfForm chrome are applied, cap to screen
+        Load += (_, _) =>
+        {
+            var screen = Screen.FromControl(this).WorkingArea;
+            if (Width > screen.Width - 20) Width = screen.Width - 20;
+            if (Height > screen.Height - 20) Height = screen.Height - 20;
+            CenterToScreen();
+        };
+
         _suggestedBox.Select(suggestedText.Length, 0);
         ActiveControl = _suggestedBox;
     }
