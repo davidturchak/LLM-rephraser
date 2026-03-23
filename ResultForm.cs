@@ -13,99 +13,138 @@ public sealed class ResultForm : Form
     public string SuggestedText => _suggestedBox.Text;
     public bool Accepted { get; private set; }
 
-    private static bool IsRtl(string text)
+    private static bool IsRtl(string text) =>
+        text.Any(c => c is (>= '\u0590' and <= '\u05FF')
+                        or (>= '\u0600' and <= '\u06FF')
+                        or (>= '\u0750' and <= '\u077F')
+                        or (>= '\u08A0' and <= '\u08FF')
+                        or (>= '\uFB50' and <= '\uFDFF')
+                        or (>= '\uFE70' and <= '\uFEFF'));
+
+    // Measure how many lines a string needs in a given TextBox width
+    private static int MeasureLines(string text, Font font, int boxWidth)
     {
-        return text.Any(c =>
+        if (string.IsNullOrEmpty(text)) return 1;
+        using var g = Graphics.FromHwnd(IntPtr.Zero);
+        float charWidth = g.MeasureString("W", font).Width;
+        int charsPerLine = Math.Max(1, (int)(boxWidth / charWidth));
+        int lines = 0;
+        foreach (var raw in text.Split('\n'))
         {
-            var cat = CharUnicodeInfo.GetUnicodeCategory(c);
-            // Hebrew: \u0590-\u05FF, Arabic: \u0600-\u06FF \u0750-\u077F \u08A0-\u08FF \uFB50-\uFDFF \uFE70-\uFEFF
-            return c is (>= '\u0590' and <= '\u05FF')
-                     or (>= '\u0600' and <= '\u06FF')
-                     or (>= '\u0750' and <= '\u077F')
-                     or (>= '\u08A0' and <= '\u08FF')
-                     or (>= '\uFB50' and <= '\uFDFF')
-                     or (>= '\uFE70' and <= '\uFEFF');
-        });
+            lines += Math.Max(1, (int)Math.Ceiling((double)Math.Max(1, raw.Length) / charsPerLine));
+        }
+        return lines;
     }
 
     public ResultForm(string styleName, string originalText, string suggestedText)
     {
         Text = $"LLM-Rephraser \u2014 {styleName}";
-        ClientSize = new Size(560, 410);
         FormBorderStyle = FormBorderStyle.FixedDialog;
         MaximizeBox = false;
         MinimizeBox = false;
         StartPosition = FormStartPosition.CenterScreen;
-        Font = new Font("Segoe UI", 9f);
-        Padding = new Padding(12);
+        Font = new Font("Segoe UI", 9.5f);
 
-        // ── Original ──
-        var originalGroup = new GroupBox
+        const int pad = 16;
+        const int formW = 560;
+        const int innerW = formW - pad * 2;
+        const int lineH = 18;
+        const int minLines = 2;
+        const int maxLines = 8;
+        const int boxPadV = 10; // top+bottom inner padding
+
+        bool origRtl = IsRtl(originalText);
+        bool suggRtl = IsRtl(suggestedText);
+
+        int origLines = Math.Clamp(MeasureLines(originalText, Font, innerW - 4), minLines, maxLines);
+        int suggLines = Math.Clamp(MeasureLines(suggestedText, Font, innerW - 4), minLines, maxLines);
+
+        int origH  = origLines * lineH + boxPadV * 2;
+        int suggH  = suggLines * lineH + boxPadV * 2;
+
+        // ── Layout ──
+        int y = pad;
+
+        // Original label
+        var origLabel = new Label
         {
-            Text = "Original text",
-            Location = new Point(12, 8),
-            Size = new Size(536, 150)
+            Text = "Original",
+            Location = new Point(pad, y),
+            AutoSize = true,
+            ForeColor = SystemColors.GrayText,
+            Font = new Font("Segoe UI", 8.5f, FontStyle.Regular)
         };
+        y += origLabel.PreferredHeight + 2;
 
-        bool originalRtl = IsRtl(originalText);
+        // Original panel (read-only, gray background, no border frame)
         var originalBox = new TextBox
         {
             Text = originalText,
-            Location = new Point(10, 22),
-            Size = new Size(516, 116),
+            Location = new Point(pad, y),
+            Size = new Size(innerW, origH),
             Multiline = true,
             ReadOnly = true,
-            ScrollBars = ScrollBars.Vertical,
-            BackColor = SystemColors.Control,
+            ScrollBars = origLines >= maxLines ? ScrollBars.Vertical : ScrollBars.None,
+            BorderStyle = BorderStyle.FixedSingle,
+            BackColor = Color.FromArgb(245, 245, 245),
+            ForeColor = Color.FromArgb(80, 80, 80),
             TabStop = false,
-            RightToLeft = originalRtl ? RightToLeft.Yes : RightToLeft.No
+            RightToLeft = origRtl ? RightToLeft.Yes : RightToLeft.No,
+            Font = new Font("Segoe UI", 10f)
         };
-        originalGroup.Controls.Add(originalBox);
+        y += origH + pad;
 
-        // ── Suggested ──
-        var suggestedGroup = new GroupBox
+        // Suggestion label
+        var suggLabel = new Label
         {
-            Text = "Suggestion (you can edit before accepting)",
-            Location = new Point(12, 166),
-            Size = new Size(536, 150)
+            Text = "Suggestion  \u2014  you can edit before accepting",
+            Location = new Point(pad, y),
+            AutoSize = true,
+            ForeColor = SystemColors.GrayText,
+            Font = new Font("Segoe UI", 8.5f, FontStyle.Regular)
         };
+        y += suggLabel.PreferredHeight + 2;
 
-        bool suggestedRtl = IsRtl(suggestedText);
+        // Suggestion textbox (editable)
         _suggestedBox = new TextBox
         {
             Text = suggestedText,
-            Location = new Point(10, 22),
-            Size = new Size(516, 116),
+            Location = new Point(pad, y),
+            Size = new Size(innerW, suggH),
             Multiline = true,
-            ScrollBars = ScrollBars.Vertical,
-            RightToLeft = suggestedRtl ? RightToLeft.Yes : RightToLeft.No
+            ScrollBars = suggLines >= maxLines ? ScrollBars.Vertical : ScrollBars.None,
+            BorderStyle = BorderStyle.FixedSingle,
+            BackColor = Color.White,
+            ForeColor = SystemColors.ControlText,
+            RightToLeft = suggRtl ? RightToLeft.Yes : RightToLeft.No,
+            Font = new Font("Segoe UI", 10f)
         };
-        suggestedGroup.Controls.Add(_suggestedBox);
+        y += suggH + pad + 4;
 
         // ── Buttons ──
-        var acceptButton = new Button
-        {
-            Text = "Accept && Replace",
-            Location = new Point(348, 328),
-            Size = new Size(115, 30),
-            Anchor = AnchorStyles.Bottom | AnchorStyles.Right
-        };
-        acceptButton.Click += (_, _) =>
-        {
-            Accepted = true;
-            Close();
-        };
-
         var cancelButton = new Button
         {
             Text = "Cancel",
-            Location = new Point(469, 328),
-            Size = new Size(79, 30),
-            Anchor = AnchorStyles.Bottom | AnchorStyles.Right
+            Size = new Size(88, 30),
+            DialogResult = DialogResult.Cancel
         };
+        cancelButton.Location = new Point(formW - pad - cancelButton.Width, y);
         cancelButton.Click += (_, _) => Close();
 
-        Controls.AddRange([originalGroup, suggestedGroup, acceptButton, cancelButton]);
+        var acceptButton = new Button
+        {
+            Text = "Accept \u0026 Replace",
+            Size = new Size(120, 30),
+            Font = new Font("Segoe UI", 9.5f, FontStyle.Bold)
+        };
+        acceptButton.Location = new Point(cancelButton.Left - acceptButton.Width - 8, y);
+        acceptButton.Click += (_, _) => { Accepted = true; Close(); };
+
+        y += acceptButton.Height + pad;
+
+        ClientSize = new Size(formW, y);
+
+        Controls.AddRange([origLabel, originalBox, suggLabel, _suggestedBox, acceptButton, cancelButton]);
 
         AcceptButton = acceptButton;
         CancelButton = cancelButton;
@@ -113,5 +152,9 @@ public sealed class ResultForm : Form
         _suggestedBox.TabIndex = 0;
         acceptButton.TabIndex = 1;
         cancelButton.TabIndex = 2;
+
+        // Focus suggestion box and move caret to end
+        _suggestedBox.Select(suggestedText.Length, 0);
+        ActiveControl = _suggestedBox;
     }
 }
