@@ -127,9 +127,15 @@ public sealed class SettingsForm : SfForm
         Style.TitleBar.BackColor = AccentPrimary;
         Style.TitleBar.ForeColor = Color.White;
 
+        // Convert screen pixels to design units so AutoScaleMode.Font
+        // doesn't blow the form past the screen edges at high DPI.
         var workArea = Screen.FromPoint(Cursor.Position).WorkingArea;
-        int formW = Math.Min(540, workArea.Width - 40);
-        int formH = Math.Min(580, workArea.Height - 40);
+        float dpiScale;
+        using (var g = Graphics.FromHwnd(IntPtr.Zero)) { dpiScale = g.DpiX / 96f; }
+        int availW = (int)((workArea.Width - 40) / dpiScale);
+        int availH = (int)((workArea.Height - 40) / dpiScale);
+        int formW = Math.Min(540, availW);
+        int formH = Math.Min(580, availH);
         ClientSize = new Size(formW, formH);
 
         var tabControl = new TabControlAdv
@@ -219,10 +225,10 @@ public sealed class SettingsForm : SfForm
         // Options card
         var optionsCard = new SectionCard { Location = new Point(4, 388), Size = new Size(cardW, 112) };
         var optLabel = MakeSectionLabel("OPTIONS"); optLabel.Location = new Point(innerPad, 10);
-        _shiftRightClickBox = new CheckBoxAdv { Text = "Enable Shift+Right-Click to open style picker", Location = new Point(innerPad, 30), Size = new Size(460, 18), Checked = _config.ShiftRightClickEnabled, ForeColor = TextBody, BackColor = Color.Transparent, Font = new Font("Segoe UI", 9f) };
-        _floatingToolbarBox = new CheckBoxAdv { Text = "Show floating toolbar when text is selected", Location = new Point(innerPad, 50), Size = new Size(460, 18), Checked = _config.FloatingToolbarEnabled, ForeColor = TextBody, BackColor = Color.Transparent, Font = new Font("Segoe UI", 9f) };
-        _contextMenuBox = new CheckBoxAdv { Text = "Add \"Rephrase\" to Windows right-click menu", Location = new Point(innerPad, 70), Size = new Size(460, 18), Checked = _config.ContextMenuEnabled, ForeColor = TextBody, BackColor = Color.Transparent, Font = new Font("Segoe UI", 9f) };
-        _startWithWindowsBox = new CheckBoxAdv { Text = "Start LLM-Rephraser with Windows", Location = new Point(innerPad, 90), Size = new Size(460, 18), Checked = AppConfig.ReadStartWithWindows(), ForeColor = TextBody, BackColor = Color.Transparent, Font = new Font("Segoe UI", 9f) };
+        _shiftRightClickBox = new CheckBoxAdv { Text = "Enable Shift+Right-Click to open style picker", Location = new Point(innerPad, 30), AutoSize = true, Checked = _config.ShiftRightClickEnabled, ForeColor = TextBody, BackColor = Color.Transparent, Font = new Font("Segoe UI", 9f) };
+        _floatingToolbarBox = new CheckBoxAdv { Text = "Show floating toolbar when text is selected", Location = new Point(innerPad, 50), AutoSize = true, Checked = _config.FloatingToolbarEnabled, ForeColor = TextBody, BackColor = Color.Transparent, Font = new Font("Segoe UI", 9f) };
+        _contextMenuBox = new CheckBoxAdv { Text = "Add \"Rephrase\" to Windows right-click menu", Location = new Point(innerPad, 70), AutoSize = true, Checked = _config.ContextMenuEnabled, ForeColor = TextBody, BackColor = Color.Transparent, Font = new Font("Segoe UI", 9f) };
+        _startWithWindowsBox = new CheckBoxAdv { Text = "Start LLM-Rephraser with Windows", Location = new Point(innerPad, 90), AutoSize = true, Checked = AppConfig.ReadStartWithWindows(), ForeColor = TextBody, BackColor = Color.Transparent, Font = new Font("Segoe UI", 9f) };
         optionsCard.Controls.AddRange([optLabel, _shiftRightClickBox, _floatingToolbarBox, _contextMenuBox, _startWithWindowsBox]);
 
         settingsPanel.Controls.AddRange([profileCard, connectionCard, langCard, optionsCard]);
@@ -258,8 +264,8 @@ public sealed class SettingsForm : SfForm
         var gaiDescription = new Label { Text = "Browse Gemini models from Google AI Studio and create a profile with one click.", Location = new Point(innerPad, 28), Size = new Size(cardW - innerPad * 2, 18), ForeColor = TextMuted, Font = new Font("Segoe UI", 8f), BackColor = Color.Transparent, Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right };
 
         var gaiKeyLabel = new Label { Text = "API Key:", Location = new Point(innerPad, 56), Size = new Size(55, 17), TextAlign = ContentAlignment.MiddleLeft, ForeColor = TextBody, BackColor = Color.Transparent };
-        _gaiApiKeyBox = new TextBox { Location = new Point(73, 54), Size = new Size(260, 23), UseSystemPasswordChar = true };
-        _gaiFetchButton = MakeSecondary("Fetch Models", 100, 27); _gaiFetchButton.Location = new Point(343, 53); _gaiFetchButton.Anchor = AnchorStyles.Top | AnchorStyles.Right; _gaiFetchButton.Click += GaiFetchModels_Click;
+        _gaiApiKeyBox = new TextBox { Location = new Point(73, 54), Size = new Size(cardW - 73 - 100 - innerPad - 8, 23), UseSystemPasswordChar = true };
+        _gaiFetchButton = MakeSecondary("Fetch Models", 100, 27); _gaiFetchButton.Location = new Point(cardW - innerPad - 100, 53); _gaiFetchButton.Click += GaiFetchModels_Click;
         _gaiStatusLabel = new Label { Text = "", Location = new Point(innerPad, 84), Size = new Size(cardW - innerPad * 2, 17), TextAlign = ContentAlignment.MiddleLeft, BackColor = Color.Transparent, Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right };
 
         var gaiSearchLabel = new Label { Text = "Search:", Location = new Point(innerPad, 108), Size = new Size(50, 17), TextAlign = ContentAlignment.MiddleLeft, ForeColor = TextBody, BackColor = Color.Transparent };

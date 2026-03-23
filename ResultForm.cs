@@ -124,7 +124,12 @@ public sealed class ResultForm : SfForm
         Style.TitleBar.BackColor = AccentSugg;
         Style.TitleBar.ForeColor = Color.White;
 
+        // Convert screen pixels to design units for DPI awareness
         var workArea = Screen.FromPoint(Cursor.Position).WorkingArea;
+        float dpiScale;
+        using (var g = Graphics.FromHwnd(IntPtr.Zero)) { dpiScale = g.DpiX / 96f; }
+        int availW = (int)(workArea.Width / dpiScale);
+        int availH = (int)(workArea.Height / dpiScale);
 
         const int pad       = 20;
         const int cardPadL  = 20;
@@ -135,7 +140,7 @@ public sealed class ResultForm : SfForm
         const int maxLines  = 8;
         const int lineH     = 20;
 
-        int formW  = Math.Clamp(workArea.Width * 2 / 5, 360, 580);
+        int formW  = Math.Clamp(availW * 2 / 5, 360, 580);
         int innerW = formW - pad * 2;
 
         var textFont  = new Font("Segoe UI", 10f);
@@ -291,7 +296,7 @@ public sealed class ResultForm : SfForm
                 diffBox.Height = diffLines * lineH + 12;
                 diffBox.Visible = true;
                 var newH = y + 28 + diffBox.Height + pad;
-                ClientSize = new Size(formW, Math.Min(newH, workArea.Height - 40));
+                ClientSize = new Size(formW, Math.Min(newH, availH - 40));
             }
             else
             {
@@ -335,7 +340,7 @@ public sealed class ResultForm : SfForm
 
         y += acceptButton.Height + pad;
 
-        int finalH = Math.Min(y, workArea.Height - 40);
+        int finalH = Math.Min(y, availH - 40);
         ClientSize = new Size(formW, finalH);
 
         Controls.AddRange([origCard, suggCard, diffLink, diffBox, acceptButton, cancelButton]);
