@@ -52,65 +52,28 @@ public sealed class ResultForm : Form
         private readonly Color _accent;
         private const int R = 8;
         private const int AccentW = 3;
-        private const int ShadowOffset = 3;
 
         public CardPanel(Color accent)
         {
             _accent = accent;
             BackColor = BgCard;
             DoubleBuffered = true;
+            SetStyle(ControlStyles.ResizeRedraw, true);
         }
-
-        protected override void OnPaintBackground(PaintEventArgs e) { /* suppress */ }
 
         protected override void OnPaint(PaintEventArgs e)
         {
             var g = e.Graphics;
             g.SmoothingMode = SmoothingMode.AntiAlias;
 
-            // Shadow
-            var shadowRect = new Rectangle(ShadowOffset, ShadowOffset, Width - ShadowOffset - 1, Height - ShadowOffset - 1);
-            using var shadowPath = RoundedPath(shadowRect, R);
-            using var shadowBrush = new SolidBrush(Color.FromArgb(18, 0, 0, 0));
-            g.FillPath(shadowBrush, shadowPath);
+            var rect = new Rectangle(0, 0, Width - 1, Height - 1);
 
-            // Card body
-            var cardRect = new Rectangle(0, 0, Width - ShadowOffset - 1, Height - ShadowOffset - 1);
-            using var cardPath = RoundedPath(cardRect, R);
-            g.FillPath(Brushes.White, cardPath);
-
-            // Border
+            // 1px border
             using var borderPen = new Pen(BorderCard, 1f);
-            g.DrawPath(borderPen, cardPath);
+            g.DrawRectangle(borderPen, rect);
 
-            // Left accent bar (clipped to rounded left edge)
-            var accentRect = new Rectangle(0, 0, AccentW * 2 + R, cardRect.Height);
-            using var accentClip = RoundedPath(accentRect, R);
-            g.SetClip(accentClip);
-            g.FillRectangle(new SolidBrush(_accent), 0, 0, AccentW, cardRect.Height);
-            g.ResetClip();
-
-            // Children
-            foreach (Control c in Controls)
-            {
-                if (!c.Visible) continue;
-                var img = new Bitmap(c.Width, c.Height);
-                c.DrawToBitmap(img, new Rectangle(0, 0, c.Width, c.Height));
-                g.DrawImage(img, c.Location);
-                img.Dispose();
-            }
-        }
-
-        private static GraphicsPath RoundedPath(Rectangle r, int radius)
-        {
-            int d = radius * 2;
-            var p = new GraphicsPath();
-            p.AddArc(r.X, r.Y, d, d, 180, 90);
-            p.AddArc(r.Right - d, r.Y, d, d, 270, 90);
-            p.AddArc(r.Right - d, r.Bottom - d, d, d, 0, 90);
-            p.AddArc(r.X, r.Bottom - d, d, d, 90, 90);
-            p.CloseFigure();
-            return p;
+            // Left accent bar
+            g.FillRectangle(new SolidBrush(_accent), 0, 0, AccentW, Height);
         }
     }
 
@@ -218,8 +181,7 @@ public sealed class ResultForm : Form
         const int cardPadV  = 12;
         const int labelH    = 18;
         const int formW     = 580;
-        const int shadowOff = 4;
-        const int innerW    = formW - pad * 2 - shadowOff;
+        const int innerW    = formW - pad * 2;
         const int minLines  = 2;
         const int maxLines  = 8;
         const int lineH     = 20;
@@ -235,8 +197,8 @@ public sealed class ResultForm : Form
 
         int origBoxH  = origLines * lineH + 8;
         int suggBoxH  = suggLines * lineH + 8;
-        int origCardH = cardPadV + labelH + 6 + origBoxH + cardPadV + shadowOff;
-        int suggCardH = cardPadV + labelH + 6 + suggBoxH + cardPadV + shadowOff;
+        int origCardH = cardPadV + labelH + 6 + origBoxH + cardPadV + 0;
+        int suggCardH = cardPadV + labelH + 6 + suggBoxH + cardPadV + 0;
 
         int y = pad;
 
@@ -261,7 +223,7 @@ public sealed class ResultForm : Form
         {
             Text = originalText,
             Location = new Point(cardPadL, cardPadV + labelH + 6),
-            Size = new Size(innerW - cardPadL - cardPadR - shadowOff, origBoxH),
+            Size = new Size(innerW - cardPadL - cardPadR - 0, origBoxH),
             Multiline = true,
             ReadOnly = true,
             ScrollBars = origLines >= maxLines ? ScrollBars.Vertical : ScrollBars.None,
@@ -307,7 +269,7 @@ public sealed class ResultForm : Form
         {
             Text = suggestedText,
             Location = new Point(cardPadL, cardPadV + labelH + 6),
-            Size = new Size(innerW - cardPadL - cardPadR - shadowOff, suggBoxH),
+            Size = new Size(innerW - cardPadL - cardPadR - 0, suggBoxH),
             Multiline = true,
             ScrollBars = suggLines >= maxLines ? ScrollBars.Vertical : ScrollBars.None,
             BorderStyle = BorderStyle.None,
