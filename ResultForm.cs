@@ -77,58 +77,6 @@ public sealed class ResultForm : Form
         }
     }
 
-    // ── Rounded button ───────────────────────────────────────────────────
-    private sealed class RoundedButton : Button
-    {
-        private readonly bool _primary;
-        private bool _hovered;
-        private const int R = 7;
-
-        public RoundedButton(bool primary)
-        {
-            _primary = primary;
-            FlatStyle = FlatStyle.Flat;
-            FlatAppearance.BorderSize = 0;
-            BackColor = primary ? PrimaryBtn : Color.Transparent;
-            ForeColor = primary ? Color.White : TextBody;
-            Font = new Font("Segoe UI", 9.5f, primary ? FontStyle.Bold : FontStyle.Regular);
-            Cursor = Cursors.Hand;
-            SetStyle(ControlStyles.UserPaint | ControlStyles.AllPaintingInWmPaint | ControlStyles.DoubleBuffer, true);
-        }
-
-        protected override void OnMouseEnter(EventArgs e) { _hovered = true;  Invalidate(); base.OnMouseEnter(e); }
-        protected override void OnMouseLeave(EventArgs e) { _hovered = false; Invalidate(); base.OnMouseLeave(e); }
-
-        protected override void OnPaint(PaintEventArgs e)
-        {
-            var g = e.Graphics;
-            g.SmoothingMode = SmoothingMode.AntiAlias;
-
-            var rect = new Rectangle(0, 0, Width - 1, Height - 1);
-            int d = R * 2;
-            var path = new GraphicsPath();
-            path.AddArc(rect.X, rect.Y, d, d, 180, 90);
-            path.AddArc(rect.Right - d, rect.Y, d, d, 270, 90);
-            path.AddArc(rect.Right - d, rect.Bottom - d, d, d, 0, 90);
-            path.AddArc(rect.X, rect.Bottom - d, d, d, 90, 90);
-            path.CloseFigure();
-
-            if (_primary)
-            {
-                var fill = _hovered ? PrimaryHover : PrimaryBtn;
-                g.FillPath(new SolidBrush(fill), path);
-            }
-            else
-            {
-                // Ghost: border only
-                g.FillPath(new SolidBrush(Color.Transparent), path);
-                g.DrawPath(new Pen(BorderCard, 1.2f), path);
-            }
-
-            var sf = new StringFormat { Alignment = StringAlignment.Center, LineAlignment = StringAlignment.Center };
-            g.DrawString(Text, Font, new SolidBrush(ForeColor), rect, sf);
-        }
-    }
 
     // ── Word-level diff ──────────────────────────────────────────────────
     private static List<(string word, bool added, bool removed)> WordDiff(string original, string suggested)
@@ -349,21 +297,37 @@ public sealed class ResultForm : Form
         };
 
         // ── Buttons ──
-        var cancelButton = new RoundedButton(false)
+        var cancelButton = new Button
         {
             Text = "Cancel",
-            Size = new Size(90, 34),
+            Size = new Size(88, 32),
+            FlatStyle = FlatStyle.Flat,
+            BackColor = Color.White,
+            ForeColor = TextBody,
+            Font = new Font("Segoe UI", 9.5f),
+            Cursor = Cursors.Hand
         };
-        cancelButton.Location = new Point(formW - pad - cancelButton.Width, y - 2);
+        cancelButton.FlatAppearance.BorderColor = BorderCard;
+        cancelButton.FlatAppearance.BorderSize = 1;
         cancelButton.Click += (_, _) => Close();
 
-        var acceptButton = new RoundedButton(true)
+        var acceptButton = new Button
         {
             Text = "Accept & Replace",
-            Size = new Size(138, 34),
+            Size = new Size(138, 32),
+            FlatStyle = FlatStyle.Flat,
+            BackColor = PrimaryBtn,
+            ForeColor = Color.White,
+            Font = new Font("Segoe UI", 9.5f, FontStyle.Bold),
+            Cursor = Cursors.Hand
         };
-        acceptButton.Location = new Point(cancelButton.Left - acceptButton.Width - 8, y - 2);
+        acceptButton.FlatAppearance.BorderSize = 0;
+        acceptButton.FlatAppearance.MouseOverBackColor = PrimaryHover;
         acceptButton.Click += (_, _) => { Accepted = true; Close(); };
+
+        // Position buttons from right edge
+        cancelButton.Location  = new Point(formW - pad - cancelButton.Width, y);
+        acceptButton.Location  = new Point(cancelButton.Left - acceptButton.Width - 8, y);
 
         y += acceptButton.Height + pad;
         ClientSize = new Size(formW, y);
