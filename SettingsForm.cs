@@ -320,9 +320,21 @@ public sealed class SettingsForm : SfForm
         Load += (_, _) =>
         {
             var screen = Screen.FromControl(this).WorkingArea;
-            if (Width > screen.Width - 20) Width = screen.Width - 20;
-            if (Height > screen.Height - 20) Height = screen.Height - 20;
-            CenterToScreen();
+            int chromeW = Width - ClientSize.Width;
+            int chromeH = Height - ClientSize.Height;
+            int maxClientW = screen.Width - 20 - chromeW;
+            int maxClientH = screen.Height - 20 - chromeH;
+            int w = Math.Min(ClientSize.Width, maxClientW);
+            int h = Math.Min(ClientSize.Height, maxClientH);
+            if (w != ClientSize.Width || h != ClientSize.Height)
+                ClientSize = new Size(w, h);
+
+            // Ensure fully on-screen
+            var b = Bounds;
+            if (b.Bottom > screen.Bottom) Top = screen.Bottom - Height;
+            if (b.Right > screen.Right) Left = screen.Right - Width;
+            if (Top < screen.Top) Top = screen.Top;
+            if (Left < screen.Left) Left = screen.Left;
         };
 
         RefreshProfileList(_config.ActiveProfile);
