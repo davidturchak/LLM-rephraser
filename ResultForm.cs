@@ -5,11 +5,9 @@ using System.Drawing.Drawing2D;
 using System.Globalization;
 using System.Linq;
 using System.Windows.Forms;
-using Syncfusion.WinForms.Controls;
-
 namespace LlmRephraser;
 
-public sealed class ResultForm : SfForm
+public sealed class ResultForm : Form
 {
     private readonly TextBox _suggestedBox;
 
@@ -119,10 +117,7 @@ public sealed class ResultForm : SfForm
         MinimizeBox = false;
         StartPosition = FormStartPosition.CenterScreen;
         BackColor = BgPage;
-        ShowIcon = false;
-
-        Style.TitleBar.BackColor = AccentSugg;
-        Style.TitleBar.ForeColor = Color.White;
+        DoubleBuffered = true;
 
         // Convert screen pixels to design units for DPI awareness
         var workArea = Screen.FromPoint(Cursor.Position).WorkingArea;
@@ -305,34 +300,33 @@ public sealed class ResultForm : SfForm
             }
         };
 
-        // ── Buttons (SfButton) ──
-        var cancelButton = new SfButton
+        // ── Buttons ──
+        var cancelButton = new Button
         {
             Text = "Cancel",
             Size = new Size(88, 32),
+            FlatStyle = FlatStyle.Flat,
+            BackColor = Color.White,
+            ForeColor = TextBody,
             Font = new Font("Segoe UI", 9.5f),
             Cursor = Cursors.Hand
         };
-        cancelButton.Style.BackColor = Color.White;
-        cancelButton.Style.ForeColor = TextBody;
-        cancelButton.Style.HoverBackColor = BgPage;
-        cancelButton.Style.HoverForeColor = TextBody;
-        cancelButton.Style.Border = new Pen(BorderCard, 1);
+        cancelButton.FlatAppearance.BorderColor = BorderCard;
+        cancelButton.FlatAppearance.BorderSize = 1;
         cancelButton.Click += (_, _) => Close();
 
-        var acceptButton = new SfButton
+        var acceptButton = new Button
         {
             Text = "Accept && Replace",
             Size = new Size(138, 32),
+            FlatStyle = FlatStyle.Flat,
+            BackColor = PrimaryBtn,
+            ForeColor = Color.White,
             Font = new Font("Segoe UI", 9.5f, FontStyle.Bold),
             Cursor = Cursors.Hand
         };
-        acceptButton.Style.BackColor = PrimaryBtn;
-        acceptButton.Style.ForeColor = Color.White;
-        acceptButton.Style.HoverBackColor = PrimaryHover;
-        acceptButton.Style.HoverForeColor = Color.White;
-        acceptButton.Style.PressedBackColor = PrimaryHover;
-        acceptButton.Style.Border = new Pen(PrimaryBtn, 0);
+        acceptButton.FlatAppearance.BorderSize = 0;
+        acceptButton.FlatAppearance.MouseOverBackColor = PrimaryHover;
         acceptButton.Click += (_, _) => { Accepted = true; Close(); };
 
         cancelButton.Location  = new Point(formW - pad - cancelButton.Width, y);
@@ -351,18 +345,6 @@ public sealed class ResultForm : SfForm
         _suggestedBox.TabIndex = 0;
         acceptButton.TabIndex  = 1;
         cancelButton.TabIndex  = 2;
-
-        // Shown fires AFTER SfForm chrome + AutoScaleMode are fully applied
-        Shown += (_, _) =>
-        {
-            var screen = Screen.FromControl(this).WorkingArea;
-            if (Bottom > screen.Bottom)
-                Height -= (Bottom - screen.Bottom + 5);
-            if (Right > screen.Right)
-                Width -= (Right - screen.Right + 5);
-            if (Top < screen.Top) Top = screen.Top;
-            if (Left < screen.Left) Left = screen.Left;
-        };
 
         _suggestedBox.Select(suggestedText.Length, 0);
         ActiveControl = _suggestedBox;

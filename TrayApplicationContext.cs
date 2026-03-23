@@ -5,7 +5,6 @@ using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
-using Syncfusion.WinForms.Controls;
 
 namespace LlmRephraser;
 
@@ -235,16 +234,14 @@ public sealed class TrayApplicationContext : ApplicationContext
 
         var accentColor = Color.FromArgb(99, 102, 241);
 
-        using var dlg = new SfForm();
+        using var dlg = new Form();
         dlg.Text = "About LLM-Rephraser";
         dlg.ClientSize = new Size(400, 280);
         dlg.FormBorderStyle = FormBorderStyle.FixedDialog;
         dlg.MaximizeBox = false;
         dlg.MinimizeBox = false;
-        dlg.ShowIcon = false;
         dlg.StartPosition = FormStartPosition.CenterScreen;
-        dlg.Style.TitleBar.BackColor = accentColor;
-        dlg.Style.TitleBar.ForeColor = Color.White;
+        dlg.BackColor = Color.FromArgb(248, 250, 252);
 
         var card = new Panel
         {
@@ -304,14 +301,18 @@ public sealed class TrayApplicationContext : ApplicationContext
 
         card.Controls.AddRange([title, versionLabel, desc, link]);
 
-        var okButton = new SfButton
+        var okButton = new Button
         {
             Text = "OK",
-            AutoSize = false,
             Size = new Size(80, 36),
             Location = new Point(304, 236),
+            FlatStyle = FlatStyle.Flat,
+            BackColor = accentColor,
+            ForeColor = Color.White,
+            Font = new Font("Segoe UI", 9f, FontStyle.Bold),
             DialogResult = DialogResult.OK
         };
+        okButton.FlatAppearance.BorderSize = 0;
 
         dlg.Controls.AddRange([card, okButton]);
         dlg.AcceptButton = okButton;

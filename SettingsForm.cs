@@ -8,12 +8,11 @@ using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
-using Syncfusion.WinForms.Controls;
 using Syncfusion.Windows.Forms.Tools;
 
 namespace LlmRephraser;
 
-public sealed class SettingsForm : SfForm
+public sealed class SettingsForm : Form
 {
     // ── Settings tab fields ──
     private readonly ComboBoxAdv _profileBox;
@@ -89,21 +88,20 @@ public sealed class SettingsForm : SfForm
         protected override void OnPaint(PaintEventArgs e) { base.OnPaint(e); e.Graphics.SmoothingMode = SmoothingMode.AntiAlias; using var pen = new Pen(BorderCard, 1f); e.Graphics.DrawRectangle(pen, 0, 0, Width - 1, Height - 1); }
     }
 
-    private static SfButton MakePrimary(string text, int w, int h)
+    private static Button MakePrimary(string text, int w, int h)
     {
-        var btn = new SfButton { Text = text, Size = new Size(w, h), Font = new Font("Segoe UI", 9f, FontStyle.Bold), Cursor = Cursors.Hand };
-        btn.Style.BackColor = AccentPrimary; btn.Style.ForeColor = Color.White;
-        btn.Style.HoverBackColor = AccentHover; btn.Style.HoverForeColor = Color.White;
-        btn.Style.PressedBackColor = AccentHover; btn.Style.Border = new Pen(AccentPrimary, 0);
+        var btn = new Button { Text = text, Size = new Size(w, h), FlatStyle = FlatStyle.Flat, BackColor = AccentPrimary, ForeColor = Color.White, Font = new Font("Segoe UI", 9f, FontStyle.Bold), Cursor = Cursors.Hand };
+        btn.FlatAppearance.BorderSize = 0;
+        btn.FlatAppearance.MouseOverBackColor = AccentHover;
         return btn;
     }
 
-    private static SfButton MakeSecondary(string text, int w, int h)
+    private static Button MakeSecondary(string text, int w, int h)
     {
-        var btn = new SfButton { Text = text, Size = new Size(w, h), Font = new Font("Segoe UI", 9f), Cursor = Cursors.Hand };
-        btn.Style.BackColor = Color.White; btn.Style.ForeColor = TextBody;
-        btn.Style.HoverBackColor = BgPage; btn.Style.HoverForeColor = TextBody;
-        btn.Style.Border = new Pen(BorderCard, 1);
+        var btn = new Button { Text = text, Size = new Size(w, h), FlatStyle = FlatStyle.Flat, BackColor = Color.White, ForeColor = TextBody, Font = new Font("Segoe UI", 9f), Cursor = Cursors.Hand };
+        btn.FlatAppearance.BorderColor = BorderCard;
+        btn.FlatAppearance.BorderSize = 1;
+        btn.FlatAppearance.MouseOverBackColor = BgPage;
         return btn;
     }
 
@@ -122,13 +120,8 @@ public sealed class SettingsForm : SfForm
         Font = new Font("Segoe UI", 9f);
         BackColor = BgPage;
         MinimumSize = new Size(420, 380);
-        ShowIcon = false;
+        DoubleBuffered = true;
 
-        Style.TitleBar.BackColor = AccentPrimary;
-        Style.TitleBar.ForeColor = Color.White;
-
-        // Convert screen pixels to design units so AutoScaleMode.Font
-        // doesn't blow the form past the screen edges at high DPI.
         var workArea = Screen.FromPoint(Cursor.Position).WorkingArea;
         float dpiScale;
         using (var g = Graphics.FromHwnd(IntPtr.Zero)) { dpiScale = g.DpiX / 96f; }
@@ -316,18 +309,6 @@ public sealed class SettingsForm : SfForm
         Controls.AddRange([tabControl, _saveButton, _cancelButton]);
         AcceptButton = _saveButton; CancelButton = _cancelButton;
 
-        // Shown fires AFTER SfForm chrome + AutoScaleMode are fully applied
-        Shown += (_, _) =>
-        {
-            var screen = Screen.FromControl(this).WorkingArea;
-            if (Bottom > screen.Bottom)
-                Height -= (Bottom - screen.Bottom + 5);
-            if (Right > screen.Right)
-                Width -= (Right - screen.Right + 5);
-            if (Top < screen.Top) Top = screen.Top;
-            if (Left < screen.Left) Left = screen.Left;
-        };
-
         RefreshProfileList(_config.ActiveProfile);
     }
 
@@ -425,9 +406,8 @@ public sealed class SettingsForm : SfForm
 
     private string? PromptForName(string title, string labelText, string defaultValue = "")
     {
-        using var dlg = new SfForm { Text = title, ClientSize = new Size(340, 115), FormBorderStyle = FormBorderStyle.FixedDialog, MaximizeBox = false, MinimizeBox = false, StartPosition = FormStartPosition.CenterParent, BackColor = BgPage, Font = Font, ShowIcon = false };
+        using var dlg = new Form { Text = title, ClientSize = new Size(340, 115), FormBorderStyle = FormBorderStyle.FixedDialog, MaximizeBox = false, MinimizeBox = false, StartPosition = FormStartPosition.CenterParent, BackColor = BgPage, Font = Font };
         dlg.AutoScaleDimensions = new SizeF(7F, 15F); dlg.AutoScaleMode = AutoScaleMode.Font;
-        dlg.Style.TitleBar.BackColor = AccentPrimary; dlg.Style.TitleBar.ForeColor = Color.White;
         var card = new SectionCard { Location = new Point(12, 8), Size = new Size(316, 60) };
         var lbl = new Label { Text = labelText, Location = new Point(12, 8), AutoSize = true, ForeColor = TextBody, BackColor = Color.Transparent };
         var txt = new TextBox { Text = defaultValue, Location = new Point(12, 30), Size = new Size(292, 23) }; txt.SelectAll();
