@@ -25,6 +25,8 @@ public sealed class AppConfig
 {
     public string ActiveProfile { get; set; } = "Default";
     public bool ShiftRightClickEnabled { get; set; } = false;
+    public bool ContextMenuEnabled { get; set; } = false;
+    public bool FloatingToolbarEnabled { get; set; } = true;
     public bool StartWithWindows { get; set; } = false;
     public List<string> TranslationLanguages { get; set; } = ["English", "Hebrew", "Arabic", "Russian"];
     public Dictionary<string, ProfileConfig> Profiles { get; set; } = new()
@@ -80,6 +82,7 @@ public sealed class AppConfig
         var json = JsonSerializer.Serialize(this, JsonOptions);
         File.WriteAllText(ConfigPath, json);
         ApplyStartWithWindows();
+        ApplyContextMenu();
     }
 
     private const string RunKey = @"Software\Microsoft\Windows\CurrentVersion\Run";
@@ -102,6 +105,18 @@ public sealed class AppConfig
             {
                 key.DeleteValue(RunValueName, throwOnMissingValue: false);
             }
+        }
+        catch { /* ignore registry errors */ }
+    }
+
+    private void ApplyContextMenu()
+    {
+        try
+        {
+            if (ContextMenuEnabled)
+                ContextMenuHelper.Register();
+            else
+                ContextMenuHelper.Unregister();
         }
         catch { /* ignore registry errors */ }
     }

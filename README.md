@@ -8,6 +8,8 @@ Supports **OpenAI**, **Anthropic Claude**, **Google Gemini**, **NVIDIA**, **Open
 
 - **Global hotkey** (`Ctrl+Shift+R`) — works across all Windows applications
 - **Shift+Right-Click trigger** — optional mouse-based activation (configurable in settings)
+- **Auto-detect text selection** — select text in any app and the style picker appears automatically (Grammarly-style, configurable)
+- **Windows right-click menu** — optional "Rephrase with LLM-Rephraser" entry in the Windows Explorer/Desktop context menu
 - **Rephrasing styles** — Rephrase, Make Formal, Make Concise, Fix Grammar
 - **Translation** — translate and rephrase to any language (customizable list in settings)
 - **Editable suggestions** — review and tweak the AI suggestion before accepting
@@ -17,16 +19,15 @@ Supports **OpenAI**, **Anthropic Claude**, **Google Gemini**, **NVIDIA**, **Open
 - **Built-in model browsers** — browse and select models from OpenRouter, Google AI Studio, and NVIDIA directly in settings
 - **RTL support** — Hebrew, Arabic, and other RTL languages are right-aligned automatically
 - **Request logging** — all requests and responses logged with timestamps to `%APPDATA%\LLM-Rephraser\logs\`
-- **Native Windows UI** — standard look and feel, system tray only, minimal footprint
+- **Syncfusion UI** — modern, DPI-aware interface with adaptive layout for all screen resolutions
 - **Single instance** — mutex-protected, only one instance runs at a time
 
 ## How It Works
 
 ```
-Select text → Ctrl+Shift+R (or Shift+Right-Click) →
-Style picker appears → Choose a style →
-API returns suggestion → Review/edit in dialog →
-Accept: pastes replacement back | Cancel: nothing changes
+Select text → style picker appears automatically (or use Ctrl+Shift+R / Shift+Right-Click) →
+Choose a style → API returns suggestion →
+Review/edit in dialog → Accept: pastes replacement back | Cancel: nothing changes
 ```
 
 ## Installation
@@ -118,6 +119,8 @@ Default languages: English, Hebrew, Arabic, Russian.
 | Option | Description |
 |---|---|
 | **Shift+Right-Click** | Enable/disable the Shift+Right-Click trigger (off by default) |
+| **Show floating toolbar on text selection** | Auto-show style picker when text is selected by dragging (on by default) |
+| **Add to Windows right-click menu** | Register "Rephrase with LLM-Rephraser" in Windows Explorer/Desktop context menu |
 | **Start with Windows** | Launch LLM-Rephraser automatically on Windows startup |
 
 ### Config File
@@ -147,6 +150,8 @@ LLM-Rephraser/
 ├── ResultForm.cs               # Original vs Suggested comparison dialog
 ├── HotkeyWindow.cs             # NativeWindow subclass for WM_HOTKEY
 ├── MouseHookWindow.cs          # Low-level mouse hook for Shift+Right-Click
+├── SelectionDetector.cs        # Detects text selection gestures (mouse drag)
+├── ContextMenuHelper.cs        # Windows Explorer/Desktop context menu registration
 ├── app.ico                     # Application icon (multi-size)
 ├── build-release.sh            # Build, version bump, package, commit & push
 ├── Installer/

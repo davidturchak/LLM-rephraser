@@ -5,6 +5,7 @@ using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using Syncfusion.WinForms.Controls;
 
 namespace LlmRephraser;
 
@@ -33,6 +34,9 @@ public sealed class TrayApplicationContext : ApplicationContext
     private readonly ToolStripMenuItem _translateMenu;
     private readonly Form _helperForm;
     private readonly MouseHookWindow _mouseHook;
+    private readonly SelectionDetector _selectionDetector;
+    private readonly EventWaitHandle _rephraseEvent;
+    private readonly System.Windows.Forms.Timer _rephraseEventTimer;
     private ToolStripMenuItem _profileMenuItem = null!;
 
     private IntPtr _sourceWindow;
@@ -70,19 +74,22 @@ public sealed class TrayApplicationContext : ApplicationContext
         _helperForm.Load += (_, _) => _helperForm.Hide();
 
         // Style picker context menu
-        _styleMenu = new ContextMenuStrip();
+        _styleMenu = new ContextMenuStrip { ShowImageMargin = true };
         _styleMenu.Closed += (_, _) => _helperForm.Hide();
 
         foreach (var (label, styleName, prompt) in Styles)
         {
-            var item = new ToolStripMenuItem(label) { Tag = (styleName, prompt) };
+            var item = new ToolStripMenuItem(label, CreateStyleIcon(styleName))
+            {
+                Tag = (styleName, prompt)
+            };
             item.Click += StyleItem_Click;
             _styleMenu.Items.Add(item);
         }
 
         _styleMenu.Items.Add(new ToolStripSeparator());
 
-        _translateMenu = new ToolStripMenuItem("Translate");
+        _translateMenu = new ToolStripMenuItem("Translate", CreateTranslateIcon());
         _styleMenu.Items.Add(_translateMenu);
         _styleMenu.Opening += (_, _) => RebuildTranslateMenu();
 
@@ -111,6 +118,21 @@ public sealed class TrayApplicationContext : ApplicationContext
         _mouseHook = new MouseHookWindow();
         _mouseHook.ShiftRightClickDetected += OnHotkeyPressed;
         ApplyMouseHookSetting();
+
+        // Selection detector — shows style picker when text is dragged
+        _selectionDetector = new SelectionDetector();
+        _selectionDetector.SelectionDetected += OnSelectionDetected;
+        ApplyFloatingToolbarSetting();
+
+        // IPC: listen for rephrase signal from context menu / second instance
+        _rephraseEvent = new EventWaitHandle(false, EventResetMode.AutoReset, Program.RephraseEventName);
+        _rephraseEventTimer = new System.Windows.Forms.Timer { Interval = 500 };
+        _rephraseEventTimer.Tick += (_, _) =>
+        {
+            if (_rephraseEvent.WaitOne(0))
+                OnClipboardRephrase();
+        };
+        _rephraseEventTimer.Start();
 
         // Show settings on first run
         if (!AppConfig.Exists())
@@ -171,7 +193,7 @@ public sealed class TrayApplicationContext : ApplicationContext
         var config = AppConfig.Load();
         foreach (var lang in config.TranslationLanguages)
         {
-            var item = new ToolStripMenuItem(lang)
+            var item = new ToolStripMenuItem(lang, CreateFlagIcon(lang))
             {
                 Tag = ($"Translate to {lang}", TranslationPrompt(lang))
             };
@@ -190,83 +212,86 @@ public sealed class TrayApplicationContext : ApplicationContext
             _mouseHook.Uninstall();
     }
 
-    // ── About dialog palette ──
-    private static readonly Color _bgPage       = Color.FromArgb(248, 250, 252);
-    private static readonly Color _bgCard        = Color.White;
-    private static readonly Color _borderCard    = Color.FromArgb(226, 232, 240);
-    private static readonly Color _accentPrimary = Color.FromArgb(99, 102, 241);
-    private static readonly Color _accentHover   = Color.FromArgb(79,  70, 229);
-    private static readonly Color _textBody      = Color.FromArgb(51,  65,  85);
-    private static readonly Color _textMuted     = Color.FromArgb(148, 163, 184);
+    private void ApplyFloatingToolbarSetting()
+    {
+        var config = AppConfig.Load();
+        if (config.FloatingToolbarEnabled)
+            _selectionDetector.Install();
+        else
+            _selectionDetector.Uninstall();
+    }
+
+    private void OnSelectionDetected(Point mouseUpPos)
+    {
+        // Reuse the same flow as Ctrl+Shift+R / Shift+Right-Click:
+        // copies the selected text, shows the style picker menu
+        OnHotkeyPressed();
+    }
 
     private void ShowAbout()
     {
         var version = System.Reflection.Assembly.GetExecutingAssembly().GetName().Version;
         var ver = version != null ? $"{version.Major}.{version.Minor}.{version.Build}" : "1.0.0";
 
-        using var dlg = new Form
-        {
-            Text = "About LLM-Rephraser",
-            ClientSize = new Size(380, 220),
-            FormBorderStyle = FormBorderStyle.FixedDialog,
-            MaximizeBox = false,
-            MinimizeBox = false,
-            StartPosition = FormStartPosition.CenterScreen,
-            BackColor = _bgPage,
-            Font = new Font("Segoe UI", 9f),
-            Icon = _trayIcon.Icon
-        };
+        var accentColor = Color.FromArgb(99, 102, 241);
 
-        // Card panel
+        using var dlg = new SfForm();
+        dlg.Text = "About LLM-Rephraser";
+        dlg.ClientSize = new Size(400, 280);
+        dlg.FormBorderStyle = FormBorderStyle.FixedDialog;
+        dlg.MaximizeBox = false;
+        dlg.MinimizeBox = false;
+        dlg.ShowIcon = false;
+        dlg.StartPosition = FormStartPosition.CenterScreen;
+        dlg.Style.TitleBar.BackColor = accentColor;
+        dlg.Style.TitleBar.ForeColor = Color.White;
+
         var card = new Panel
         {
-            Location = new Point(16, 12),
-            Size = new Size(348, 150),
-            BackColor = _bgCard
+            Location = new Point(16, 16),
+            Size = new Size(368, 150),
+            BorderStyle = BorderStyle.None
         };
         card.Paint += (s, e) =>
         {
-            using var pen = new Pen(_borderCard, 1f);
-            e.Graphics.DrawRectangle(pen, 0, 0, card.Width - 1, card.Height - 1);
+            var r = card.ClientRectangle;
+            r.Width -= 1;
+            r.Height -= 1;
+            using var pen = new Pen(Color.FromArgb(220, 220, 220));
+            e.Graphics.DrawRectangle(pen, r);
         };
 
         var title = new Label
         {
             Text = "LLM-Rephraser",
-            Location = new Point(18, 14),
+            Location = new Point(16, 12),
             AutoSize = true,
-            ForeColor = _textBody,
-            Font = new Font("Segoe UI", 15f, FontStyle.Bold),
-            BackColor = Color.Transparent
+            Font = new Font("Segoe UI", 16f, FontStyle.Bold)
         };
 
         var versionLabel = new Label
         {
             Text = $"v{ver}",
-            Location = new Point(186, 20),
+            Location = new Point(16, 48),
             AutoSize = true,
-            ForeColor = _accentPrimary,
-            Font = new Font("Segoe UI", 9f, FontStyle.Bold),
-            BackColor = Color.Transparent
+            Font = new Font("Segoe UI", 11f),
+            ForeColor = accentColor
         };
 
         var desc = new Label
         {
             Text = "A Windows system tray tool for rephrasing,\ntranslating, and fixing text in any application\nusing LLM APIs.",
-            Location = new Point(18, 52),
-            Size = new Size(320, 50),
-            ForeColor = _textBody,
-            BackColor = Color.Transparent
+            Location = new Point(16, 72),
+            Size = new Size(340, 50),
+            Font = new Font("Segoe UI", 9f)
         };
 
         var link = new LinkLabel
         {
             Text = "github.com/davidturchak/LLM-rephraser",
-            Location = new Point(18, 112),
+            Location = new Point(16, 124),
             AutoSize = true,
-            LinkColor = _accentPrimary,
-            ActiveLinkColor = _accentHover,
-            BackColor = Color.Transparent
+            LinkColor = accentColor
         };
         link.LinkClicked += (_, _) =>
         {
@@ -279,20 +304,14 @@ public sealed class TrayApplicationContext : ApplicationContext
 
         card.Controls.AddRange([title, versionLabel, desc, link]);
 
-        var okButton = new Button
+        var okButton = new SfButton
         {
             Text = "OK",
-            Location = new Point(289, 174),
-            Size = new Size(75, 30),
-            FlatStyle = FlatStyle.Flat,
-            BackColor = _accentPrimary,
-            ForeColor = Color.White,
-            Font = new Font("Segoe UI", 9f, FontStyle.Bold),
-            Cursor = Cursors.Hand,
+            AutoSize = false,
+            Size = new Size(80, 36),
+            Location = new Point(304, 236),
             DialogResult = DialogResult.OK
         };
-        okButton.FlatAppearance.BorderSize = 0;
-        okButton.FlatAppearance.MouseOverBackColor = _accentHover;
 
         dlg.Controls.AddRange([card, okButton]);
         dlg.AcceptButton = okButton;
@@ -305,6 +324,7 @@ public sealed class TrayApplicationContext : ApplicationContext
         using var form = new SettingsForm(config);
         form.ShowDialog();
         ApplyMouseHookSetting();
+        ApplyFloatingToolbarSetting();
     }
 
     private async void OnHotkeyPressed()
@@ -356,6 +376,52 @@ public sealed class TrayApplicationContext : ApplicationContext
         _styleMenu.Tag = (selectedText, savedClipboard);
 
         // Show style picker at cursor — use TopMost helper to ensure visibility
+        var pos = Cursor.Position;
+        _helperForm.Location = new Point(pos.X - 1, pos.Y - 1);
+        _helperForm.Show();
+        SetForegroundWindow(_helperForm.Handle);
+        _styleMenu.Show(pos);
+    }
+
+    /// <summary>
+    /// Called when the Windows context menu entry signals us.
+    /// Uses whatever text is currently on the clipboard.
+    /// </summary>
+    private void OnClipboardRephrase()
+    {
+        if (_isBusy) return;
+
+        _sourceWindow = GetForegroundWindow();
+
+        string clipText;
+        try
+        {
+            if (!Clipboard.ContainsText())
+            {
+                _trayIcon.ShowBalloonTip(2000, "LLM-Rephraser",
+                    "Copy some text first, then use the context menu.", ToolTipIcon.Info);
+                return;
+            }
+            clipText = Clipboard.GetText();
+        }
+        catch
+        {
+            _trayIcon.ShowBalloonTip(2000, "LLM-Rephraser",
+                "Could not access clipboard.", ToolTipIcon.Warning);
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(clipText))
+        {
+            _trayIcon.ShowBalloonTip(2000, "LLM-Rephraser",
+                "Clipboard is empty. Copy text first.", ToolTipIcon.Info);
+            return;
+        }
+
+        // Store text (no saved clipboard to restore — user explicitly copied)
+        _styleMenu.Tag = (clipText, (IDataObject?)null);
+
+        // Show style picker at cursor
         var pos = Cursor.Position;
         _helperForm.Location = new Point(pos.X - 1, pos.Y - 1);
         _helperForm.Show();
@@ -556,9 +622,151 @@ public sealed class TrayApplicationContext : ApplicationContext
         return path;
     }
 
+    // ── Menu icon helpers ───────────────────────────────────────────────
+
+    private static Bitmap CreateStyleIcon(string style)
+    {
+        var bmp = new Bitmap(18, 18);
+        using var g = Graphics.FromImage(bmp);
+        g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
+        g.Clear(Color.Transparent);
+
+        switch (style)
+        {
+            case "Rephrase":
+                // Two curved arrows (cycle) — blue
+                using (var pen = new Pen(Color.FromArgb(59, 130, 246), 1.8f))
+                {
+                    pen.StartCap = System.Drawing.Drawing2D.LineCap.Round;
+                    pen.EndCap = System.Drawing.Drawing2D.LineCap.Custom;
+                    pen.CustomEndCap = new System.Drawing.Drawing2D.AdjustableArrowCap(2.5f, 2.5f, true);
+                    g.DrawArc(pen, 3, 2, 12, 9, 200, 140);
+                    g.DrawArc(pen, 3, 7, 12, 9, 20, 140);
+                }
+                break;
+
+            case "Make Formal":
+                // Tie shape — indigo
+                var indigo = Color.FromArgb(99, 102, 241);
+                using (var brush = new SolidBrush(indigo))
+                {
+                    // Knot
+                    g.FillEllipse(brush, 7, 2, 5, 4);
+                    // Tie body
+                    var tie = new PointF[] { new(7, 5), new(11, 5), new(10, 15), new(9, 13), new(8, 15) };
+                    g.FillPolygon(brush, tie);
+                }
+                break;
+
+            case "Make Concise":
+                // Inward arrows — orange
+                using (var pen = new Pen(Color.FromArgb(234, 88, 12), 2f))
+                {
+                    pen.StartCap = System.Drawing.Drawing2D.LineCap.Round;
+                    pen.EndCap = System.Drawing.Drawing2D.LineCap.Custom;
+                    pen.CustomEndCap = new System.Drawing.Drawing2D.AdjustableArrowCap(2.5f, 2.5f, true);
+                    g.DrawLine(pen, 2, 9, 7, 9);   // left arrow
+                    g.DrawLine(pen, 16, 9, 11, 9);  // right arrow
+                }
+                break;
+
+            case "Fix Grammar":
+                // Checkmark — green
+                using (var pen = new Pen(Color.FromArgb(22, 163, 74), 2.5f))
+                {
+                    pen.StartCap = System.Drawing.Drawing2D.LineCap.Round;
+                    pen.EndCap = System.Drawing.Drawing2D.LineCap.Round;
+                    g.DrawLines(pen, [new Point(3, 9), new Point(7, 14), new Point(15, 4)]);
+                }
+                break;
+        }
+        return bmp;
+    }
+
+    private static Bitmap CreateTranslateIcon()
+    {
+        // Globe icon — blue
+        var bmp = new Bitmap(18, 18);
+        using var g = Graphics.FromImage(bmp);
+        g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
+        g.Clear(Color.Transparent);
+
+        var blue = Color.FromArgb(59, 130, 246);
+        using var pen = new Pen(blue, 1.4f);
+
+        // Circle
+        g.DrawEllipse(pen, 2, 2, 14, 14);
+        // Vertical meridian
+        g.DrawEllipse(pen, 5, 2, 8, 14);
+        // Horizontal lines (latitudes)
+        g.DrawLine(pen, 2, 9, 16, 9);
+        g.DrawLine(pen, 3, 5, 15, 5);
+        g.DrawLine(pen, 3, 13, 15, 13);
+
+        return bmp;
+    }
+
+    private static readonly Dictionary<string, string> FlagMap = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ["english"]    = "🇬🇧", ["en"]      = "🇬🇧",
+        ["hebrew"]     = "🇮🇱", ["he"]      = "🇮🇱", ["עברית"] = "🇮🇱",
+        ["arabic"]     = "🇸🇦", ["ar"]      = "🇸🇦", ["العربية"] = "🇸🇦",
+        ["russian"]    = "🇷🇺", ["ru"]      = "🇷🇺", ["русский"] = "🇷🇺",
+        ["french"]     = "🇫🇷", ["fr"]      = "🇫🇷",
+        ["german"]     = "🇩🇪", ["de"]      = "🇩🇪",
+        ["spanish"]    = "🇪🇸", ["es"]      = "🇪🇸",
+        ["italian"]    = "🇮🇹", ["it"]      = "🇮🇹",
+        ["portuguese"] = "🇧🇷", ["pt"]      = "🇧🇷",
+        ["chinese"]    = "🇨🇳", ["zh"]      = "🇨🇳",
+        ["japanese"]   = "🇯🇵", ["ja"]      = "🇯🇵",
+        ["korean"]     = "🇰🇷", ["ko"]      = "🇰🇷",
+        ["turkish"]    = "🇹🇷", ["tr"]      = "🇹🇷",
+        ["polish"]     = "🇵🇱", ["pl"]      = "🇵🇱",
+        ["dutch"]      = "🇳🇱", ["nl"]      = "🇳🇱",
+        ["swedish"]    = "🇸🇪", ["sv"]      = "🇸🇪",
+        ["ukrainian"]  = "🇺🇦", ["uk"]      = "🇺🇦",
+        ["hindi"]      = "🇮🇳", ["hi"]      = "🇮🇳",
+        ["thai"]       = "🇹🇭", ["th"]      = "🇹🇭",
+        ["vietnamese"]  = "🇻🇳", ["vi"]      = "🇻🇳",
+        ["czech"]      = "🇨🇿", ["cs"]      = "🇨🇿",
+        ["greek"]      = "🇬🇷", ["el"]      = "🇬🇷",
+        ["romanian"]   = "🇷🇴", ["ro"]      = "🇷🇴",
+        ["hungarian"]  = "🇭🇺", ["hu"]      = "🇭🇺",
+        ["finnish"]    = "🇫🇮", ["fi"]      = "🇫🇮",
+        ["danish"]     = "🇩🇰", ["da"]      = "🇩🇰",
+        ["norwegian"]  = "🇳🇴", ["no"]      = "🇳🇴",
+        ["persian"]    = "🇮🇷", ["fa"]      = "🇮🇷",
+        ["indonesian"] = "🇮🇩", ["id"]      = "🇮🇩",
+        ["malay"]      = "🇲🇾", ["ms"]      = "🇲🇾",
+    };
+
+    private static Bitmap CreateFlagIcon(string language)
+    {
+        // Try to find matching flag emoji
+        if (!FlagMap.TryGetValue(language.Trim(), out var flag))
+            flag = "🌐"; // globe fallback
+
+        var bmp = new Bitmap(20, 18);
+        using var g = Graphics.FromImage(bmp);
+        g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
+        g.TextRenderingHint = System.Drawing.Text.TextRenderingHint.AntiAliasGridFit;
+        g.Clear(Color.Transparent);
+
+        using var font = new Font("Segoe UI Emoji", 11f);
+        TextRenderer.DrawText(g, flag, font,
+            new Rectangle(-2, -2, 24, 22), Color.Black,
+            TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter | TextFormatFlags.NoPadding);
+
+        return bmp;
+    }
+
     private void ExitApplication()
     {
         _cts?.Cancel();
+        _rephraseEventTimer.Stop();
+        _rephraseEventTimer.Dispose();
+        _rephraseEvent.Dispose();
+        _selectionDetector.Dispose();
         _mouseHook.Dispose();
         _hotkeyWindow.Dispose();
         _llmClient.Dispose();
@@ -573,6 +781,10 @@ public sealed class TrayApplicationContext : ApplicationContext
         if (disposing)
         {
             _cts?.Cancel();
+            _rephraseEventTimer.Stop();
+            _rephraseEventTimer.Dispose();
+            _rephraseEvent.Dispose();
+            _selectionDetector.Dispose();
             _mouseHook.Dispose();
             _hotkeyWindow.Dispose();
             _llmClient.Dispose();

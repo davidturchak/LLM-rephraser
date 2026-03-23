@@ -5,10 +5,11 @@ using System.Drawing.Drawing2D;
 using System.Globalization;
 using System.Linq;
 using System.Windows.Forms;
+using Syncfusion.WinForms.Controls;
 
 namespace LlmRephraser;
 
-public sealed class ResultForm : Form
+public sealed class ResultForm : SfForm
 {
     private readonly TextBox _suggestedBox;
 
@@ -16,16 +17,16 @@ public sealed class ResultForm : Form
     public bool Accepted { get; private set; }
 
     // ── Palette ───────────────────────────────────────────────────────────
-    private static readonly Color BgPage        = Color.FromArgb(248, 250, 252); // #F8FAFC
+    private static readonly Color BgPage        = Color.FromArgb(248, 250, 252);
     private static readonly Color BgCard        = Color.White;
-    private static readonly Color BorderCard    = Color.FromArgb(226, 232, 240); // #E2E8F0
-    private static readonly Color AccentOrig    = Color.FromArgb(148, 163, 184); // slate-400
-    private static readonly Color AccentSugg    = Color.FromArgb(99,  102, 241); // indigo-500
-    private static readonly Color TextBody      = Color.FromArgb(51,  65,  85);  // slate-700
-    private static readonly Color TextMuted     = Color.FromArgb(148, 163, 184); // slate-400
-    private static readonly Color TextOrigBody  = Color.FromArgb(100, 116, 139); // slate-500
-    private static readonly Color PrimaryBtn    = Color.FromArgb(99,  102, 241); // indigo-500
-    private static readonly Color PrimaryHover  = Color.FromArgb(79,  70,  229); // indigo-600
+    private static readonly Color BorderCard    = Color.FromArgb(226, 232, 240);
+    private static readonly Color AccentOrig    = Color.FromArgb(148, 163, 184);
+    private static readonly Color AccentSugg    = Color.FromArgb(99,  102, 241);
+    private static readonly Color TextBody      = Color.FromArgb(51,  65,  85);
+    private static readonly Color TextMuted     = Color.FromArgb(148, 163, 184);
+    private static readonly Color TextOrigBody  = Color.FromArgb(100, 116, 139);
+    private static readonly Color PrimaryBtn    = Color.FromArgb(99,  102, 241);
+    private static readonly Color PrimaryHover  = Color.FromArgb(79,  70,  229);
 
     // ── RTL detection ────────────────────────────────────────────────────
     private static bool IsRtl(string text) =>
@@ -46,11 +47,10 @@ public sealed class ResultForm : Form
         return text.Split('\n').Sum(raw => Math.Max(1, (int)Math.Ceiling((double)Math.Max(1, raw.Length) / cpl)));
     }
 
-    // ── Rounded card panel with drop shadow ─────────────────────────────
+    // ── Rounded card panel with accent bar ──────────────────────────────
     private sealed class CardPanel : Panel
     {
         private readonly Color _accent;
-        private const int R = 8;
         private const int AccentW = 3;
 
         public CardPanel(Color accent)
@@ -65,18 +65,13 @@ public sealed class ResultForm : Form
         {
             var g = e.Graphics;
             g.SmoothingMode = SmoothingMode.AntiAlias;
-
             var rect = new Rectangle(0, 0, Width - 1, Height - 1);
-
-            // 1px border
             using var borderPen = new Pen(BorderCard, 1f);
             g.DrawRectangle(borderPen, rect);
-
-            // Left accent bar
-            g.FillRectangle(new SolidBrush(_accent), 0, 0, AccentW, Height);
+            using var accentBrush = new SolidBrush(_accent);
+            g.FillRectangle(accentBrush, 0, 0, AccentW, Height);
         }
     }
-
 
     // ── Word-level diff ──────────────────────────────────────────────────
     private static List<(string word, bool added, bool removed)> WordDiff(string original, string suggested)
@@ -115,24 +110,33 @@ public sealed class ResultForm : Form
 
     public ResultForm(string styleName, string originalText, string suggestedText)
     {
+        AutoScaleDimensions = new SizeF(7F, 15F);
+        AutoScaleMode = AutoScaleMode.Font;
+
         Text = $"LLM-Rephraser \u2014 {styleName}";
         FormBorderStyle = FormBorderStyle.FixedDialog;
         MaximizeBox = false;
         MinimizeBox = false;
         StartPosition = FormStartPosition.CenterScreen;
         BackColor = BgPage;
-        DoubleBuffered = true;
+        ShowIcon = false;
+
+        Style.TitleBar.BackColor = AccentSugg;
+        Style.TitleBar.ForeColor = Color.White;
+
+        var workArea = Screen.FromPoint(Cursor.Position).WorkingArea;
 
         const int pad       = 20;
-        const int cardPadL  = 20;   // inside card left (after accent bar)
+        const int cardPadL  = 20;
         const int cardPadR  = 14;
         const int cardPadV  = 12;
         const int labelH    = 18;
-        const int formW     = 580;
-        const int innerW    = formW - pad * 2;
         const int minLines  = 2;
         const int maxLines  = 8;
         const int lineH     = 20;
+
+        int formW  = Math.Clamp(workArea.Width * 2 / 5, 360, 580);
+        int innerW = formW - pad * 2;
 
         var textFont  = new Font("Segoe UI", 10f);
         var labelFont = new Font("Segoe UI", 7.5f, FontStyle.Bold);
@@ -145,8 +149,8 @@ public sealed class ResultForm : Form
 
         int origBoxH  = origLines * lineH + 8;
         int suggBoxH  = suggLines * lineH + 8;
-        int origCardH = cardPadV + labelH + 6 + origBoxH + cardPadV + 0;
-        int suggCardH = cardPadV + labelH + 6 + suggBoxH + cardPadV + 0;
+        int origCardH = cardPadV + labelH + 6 + origBoxH + cardPadV;
+        int suggCardH = cardPadV + labelH + 6 + suggBoxH + cardPadV;
 
         int y = pad;
 
@@ -171,7 +175,7 @@ public sealed class ResultForm : Form
         {
             Text = originalText,
             Location = new Point(cardPadL, cardPadV + labelH + 6),
-            Size = new Size(innerW - cardPadL - cardPadR - 0, origBoxH),
+            Size = new Size(innerW - cardPadL - cardPadR, origBoxH),
             Multiline = true,
             ReadOnly = true,
             ScrollBars = origLines >= maxLines ? ScrollBars.Vertical : ScrollBars.None,
@@ -217,7 +221,7 @@ public sealed class ResultForm : Form
         {
             Text = suggestedText,
             Location = new Point(cardPadL, cardPadV + labelH + 6),
-            Size = new Size(innerW - cardPadL - cardPadR - 0, suggBoxH),
+            Size = new Size(innerW - cardPadL - cardPadR, suggBoxH),
             Multiline = true,
             ScrollBars = suggLines >= maxLines ? ScrollBars.Vertical : ScrollBars.None,
             BorderStyle = BorderStyle.None,
@@ -241,7 +245,6 @@ public sealed class ResultForm : Form
             ActiveLinkColor = PrimaryHover
         };
 
-        // Diff RichTextBox (hidden by default)
         var diffBox = new RichTextBox
         {
             Location = new Point(pad, y + 28),
@@ -287,7 +290,8 @@ public sealed class ResultForm : Form
                 int diffLines = Math.Min(6, diffBox.Lines.Length + 1);
                 diffBox.Height = diffLines * lineH + 12;
                 diffBox.Visible = true;
-                ClientSize = new Size(formW, y + 28 + diffBox.Height + pad);
+                var newH = y + 28 + diffBox.Height + pad;
+                ClientSize = new Size(formW, Math.Min(newH, workArea.Height - 40));
             }
             else
             {
@@ -296,41 +300,43 @@ public sealed class ResultForm : Form
             }
         };
 
-        // ── Buttons ──
-        var cancelButton = new Button
+        // ── Buttons (SfButton) ──
+        var cancelButton = new SfButton
         {
             Text = "Cancel",
             Size = new Size(88, 32),
-            FlatStyle = FlatStyle.Flat,
-            BackColor = Color.White,
-            ForeColor = TextBody,
             Font = new Font("Segoe UI", 9.5f),
             Cursor = Cursors.Hand
         };
-        cancelButton.FlatAppearance.BorderColor = BorderCard;
-        cancelButton.FlatAppearance.BorderSize = 1;
+        cancelButton.Style.BackColor = Color.White;
+        cancelButton.Style.ForeColor = TextBody;
+        cancelButton.Style.HoverBackColor = BgPage;
+        cancelButton.Style.HoverForeColor = TextBody;
+        cancelButton.Style.Border = new Pen(BorderCard, 1);
         cancelButton.Click += (_, _) => Close();
 
-        var acceptButton = new Button
+        var acceptButton = new SfButton
         {
-            Text = "Accept & Replace",
+            Text = "Accept && Replace",
             Size = new Size(138, 32),
-            FlatStyle = FlatStyle.Flat,
-            BackColor = PrimaryBtn,
-            ForeColor = Color.White,
             Font = new Font("Segoe UI", 9.5f, FontStyle.Bold),
             Cursor = Cursors.Hand
         };
-        acceptButton.FlatAppearance.BorderSize = 0;
-        acceptButton.FlatAppearance.MouseOverBackColor = PrimaryHover;
+        acceptButton.Style.BackColor = PrimaryBtn;
+        acceptButton.Style.ForeColor = Color.White;
+        acceptButton.Style.HoverBackColor = PrimaryHover;
+        acceptButton.Style.HoverForeColor = Color.White;
+        acceptButton.Style.PressedBackColor = PrimaryHover;
+        acceptButton.Style.Border = new Pen(PrimaryBtn, 0);
         acceptButton.Click += (_, _) => { Accepted = true; Close(); };
 
-        // Position buttons from right edge
         cancelButton.Location  = new Point(formW - pad - cancelButton.Width, y);
         acceptButton.Location  = new Point(cancelButton.Left - acceptButton.Width - 8, y);
 
         y += acceptButton.Height + pad;
-        ClientSize = new Size(formW, y);
+
+        int finalH = Math.Min(y, workArea.Height - 40);
+        ClientSize = new Size(formW, finalH);
 
         Controls.AddRange([origCard, suggCard, diffLink, diffBox, acceptButton, cancelButton]);
 
