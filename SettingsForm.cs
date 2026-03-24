@@ -126,18 +126,23 @@ public sealed class SettingsForm : Form
             Location = new Point(8, 8),
             Size = new Size(formW - 16, formH - 52),
             Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right | AnchorStyles.Bottom,
-            ActiveTabColor = ThemeColors.IsDark ? ThemeColors.BgPage : ThemeColors.BgCard,
+            ActiveTabColor = ThemeColors.BgPage,
             ActiveTabForeColor = ThemeColors.IsDark ? Color.White : ThemeColors.Accent,
             ActiveTabFont = new Font("Segoe UI", 9f, FontStyle.Bold),
             InactiveTabColor = ThemeColors.BgPage,
-            ForeColor = ThemeColors.IsDark ? Color.FromArgb(180, 180, 180) : SystemColors.ControlText,
+            ForeColor = ThemeColors.IsDark ? Color.FromArgb(180, 180, 180) : ThemeColors.TextBody,
             BorderStyle = BorderStyle.None,
             FocusOnTabClick = false,
-            TabGap = 4
+            TabGap = 4,
+            FixedSingleBorderColor = ThemeColors.BorderCard,
+            TabPanelBackColor = ThemeColors.BgPage,
+            TabStyle = ThemeColors.IsDark
+                ? typeof(Syncfusion.Windows.Forms.Tools.TabRendererBlendDark)
+                : typeof(Syncfusion.Windows.Forms.Tools.TabRendererBlendLight)
         };
 
         // ═══ TAB 1: Settings ═══
-        var settingsTab = new TabPageAdv("Settings") { BackColor = ThemeColors.BgPage };
+        var settingsTab = new TabPageAdv("Settings") { BackColor = ThemeColors.BgPage, ForeColor = ThemeColors.IsDark ? Color.FromArgb(180, 180, 180) : SystemColors.ControlText };
         var settingsPanel = new Panel { Dock = DockStyle.Fill, AutoScroll = true, BackColor = ThemeColors.BgPage };
 
         const int innerPad = 14;
@@ -221,7 +226,7 @@ public sealed class SettingsForm : Form
         settingsTab.Controls.Add(settingsPanel);
 
         // ═══ TAB 2: OpenRouter ═══
-        var openRouterTab = new TabPageAdv("OpenRouter") { BackColor = ThemeColors.BgPage };
+        var openRouterTab = new TabPageAdv("OpenRouter") { BackColor = ThemeColors.BgPage, ForeColor = ThemeColors.IsDark ? Color.FromArgb(180, 180, 180) : SystemColors.ControlText };
         var orCard = new SectionCard { Location = new Point(4, 4), Size = new Size(cardW, formH - 96), Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right | AnchorStyles.Bottom };
         var orSectionLabel = MakeSectionLabel("BROWSE FREE MODELS"); orSectionLabel.Location = new Point(innerPad, 10);
         var orDescription = new Label { Text = "Browse free models from OpenRouter.ai and create a profile with one click.", Location = new Point(innerPad, 28), Size = new Size(cardW - innerPad * 2, 18), ForeColor = ThemeColors.TextMuted, Font = new Font("Segoe UI", 8f), BackColor = Color.Transparent, Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right };
@@ -244,7 +249,7 @@ public sealed class SettingsForm : Form
         openRouterTab.Controls.Add(orCard);
 
         // ═══ TAB 3: Google AI Studio ═══
-        var gaiTab = new TabPageAdv("Google AI Studio") { BackColor = ThemeColors.BgPage };
+        var gaiTab = new TabPageAdv("Google AI Studio") { BackColor = ThemeColors.BgPage, ForeColor = ThemeColors.IsDark ? Color.FromArgb(180, 180, 180) : SystemColors.ControlText };
         var gaiCard = new SectionCard { Location = new Point(4, 4), Size = new Size(cardW, formH - 96), Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right | AnchorStyles.Bottom };
         var gaiSectionLabel = MakeSectionLabel("BROWSE GEMINI MODELS"); gaiSectionLabel.Location = new Point(innerPad, 10);
         var gaiDescription = new Label { Text = "Browse Gemini models from Google AI Studio and create a profile with one click.", Location = new Point(innerPad, 28), Size = new Size(cardW - innerPad * 2, 18), ForeColor = ThemeColors.TextMuted, Font = new Font("Segoe UI", 8f), BackColor = Color.Transparent, Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right };
@@ -270,7 +275,7 @@ public sealed class SettingsForm : Form
         gaiTab.Controls.Add(gaiCard);
 
         // ═══ TAB 4: NVIDIA ═══
-        var nvTab = new TabPageAdv("NVIDIA") { BackColor = ThemeColors.BgPage };
+        var nvTab = new TabPageAdv("NVIDIA") { BackColor = ThemeColors.BgPage, ForeColor = ThemeColors.IsDark ? Color.FromArgb(180, 180, 180) : SystemColors.ControlText };
         var nvCard = new SectionCard { Location = new Point(4, 4), Size = new Size(cardW, formH - 96), Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right | AnchorStyles.Bottom };
         var nvSectionLabel = MakeSectionLabel("BROWSE NVIDIA MODELS"); nvSectionLabel.Location = new Point(innerPad, 10);
         var nvDescription = new Label { Text = "Browse models from NVIDIA Build and create a profile with one click.", Location = new Point(innerPad, 28), Size = new Size(cardW - innerPad * 2, 18), ForeColor = ThemeColors.TextMuted, Font = new Font("Segoe UI", 8f), BackColor = Color.Transparent, Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right };

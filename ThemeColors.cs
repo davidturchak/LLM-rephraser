@@ -61,7 +61,7 @@ public static class ThemeColors
 
     // ── Semantic ──
     public static Color Success => Color.FromArgb(0, 128, 0);
-    public static Color Error => Color.Red;
+    public static Color Error => Color.FromArgb(234, 88, 12); // orange
 
     public static void Refresh()
     {
