@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Drawing.Drawing2D;
+using System.IO;
 using System.Linq;
 using System.Net.Http;
 using System.Text.Json;
@@ -119,6 +120,8 @@ public sealed class SettingsForm : Form
         StartPosition = FormStartPosition.CenterScreen;
         Font = new Font("Segoe UI", 9f);
         BackColor = ThemeColors.BgPage;
+        var icoPath = Path.Combine(AppContext.BaseDirectory, "rephrase-tool.ico");
+        if (File.Exists(icoPath)) Icon = new Icon(icoPath);
         MinimumSize = new Size(420, 380);
         DoubleBuffered = true;
 

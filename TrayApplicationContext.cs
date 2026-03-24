@@ -223,10 +223,19 @@ public sealed class TrayApplicationContext : ApplicationContext
             e.Graphics.DrawRectangle(pen, r);
         };
 
+        var iconBox = new PictureBox
+        {
+            Location = new Point(16, 12),
+            Size = new Size(64, 64),
+            SizeMode = PictureBoxSizeMode.Zoom,
+            BackColor = Color.Transparent,
+            Image = new Icon(Path.Combine(AppContext.BaseDirectory, "rephrase-tool.ico"), 64, 64).ToBitmap()
+        };
+
         var title = new Label
         {
             Text = "LLM-Rephraser",
-            Location = new Point(16, 12),
+            Location = new Point(90, 12),
             AutoSize = true,
             ForeColor = ThemeColors.TextBody,
             Font = new Font("Segoe UI", 16f, FontStyle.Bold),
@@ -236,7 +245,7 @@ public sealed class TrayApplicationContext : ApplicationContext
         var versionLabel = new Label
         {
             Text = $"v{ver}",
-            Location = new Point(16, 48),
+            Location = new Point(90, 48),
             AutoSize = true,
             Font = new Font("Segoe UI", 11f),
             ForeColor = ThemeColors.Accent,
@@ -246,7 +255,7 @@ public sealed class TrayApplicationContext : ApplicationContext
         var desc = new Label
         {
             Text = "A Windows system tray tool for rephrasing,\ntranslating, and fixing text in any application\nusing LLM APIs.",
-            Location = new Point(16, 72),
+            Location = new Point(16, 84),
             Size = new Size(340, 50),
             Font = new Font("Segoe UI", 9f),
             ForeColor = ThemeColors.TextBody,
@@ -256,7 +265,7 @@ public sealed class TrayApplicationContext : ApplicationContext
         var link = new LinkLabel
         {
             Text = "github.com/davidturchak/LLM-rephraser",
-            Location = new Point(16, 124),
+            Location = new Point(16, 130),
             AutoSize = true,
             LinkColor = ThemeColors.Accent,
             BackColor = Color.Transparent
@@ -270,7 +279,7 @@ public sealed class TrayApplicationContext : ApplicationContext
             });
         };
 
-        card.Controls.AddRange([title, versionLabel, desc, link]);
+        card.Controls.AddRange([iconBox, title, versionLabel, desc, link]);
 
         var okButton = new Button
         {
@@ -355,6 +364,8 @@ public sealed class TrayApplicationContext : ApplicationContext
         _helperForm.Show();
         SetForegroundWindow(_helperForm.Handle);
         _styleMenu.Show(pos);
+        if (_styleMenu.Items.Count > 0)
+            _styleMenu.Items[0].Select();
     }
 
     /// <summary>
@@ -401,6 +412,8 @@ public sealed class TrayApplicationContext : ApplicationContext
         _helperForm.Show();
         SetForegroundWindow(_helperForm.Handle);
         _styleMenu.Show(pos);
+        if (_styleMenu.Items.Count > 0)
+            _styleMenu.Items[0].Select();
     }
 
     private async void StyleItem_Click(object? sender, EventArgs e)
@@ -572,35 +585,13 @@ public sealed class TrayApplicationContext : ApplicationContext
 
     private static Icon CreateTrayIcon()
     {
-        const int sz = 32;
-        var bmp = new Bitmap(sz, sz);
-        using (var g = Graphics.FromImage(bmp))
-        {
-            g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
-            g.Clear(Color.Transparent);
+        var icoPath = Path.Combine(AppContext.BaseDirectory, "rephrase-tool.ico");
+        if (File.Exists(icoPath))
+            return new Icon(icoPath, 32, 32);
 
-            // Rounded-rect background with gradient
-            var bgRect = new Rectangle(1, 1, sz - 2, sz - 2);
-            using var bgPath = RoundedRect(bgRect, 7);
-            using var bgBrush = new System.Drawing.Drawing2D.LinearGradientBrush(
-                bgRect, Color.FromArgb(56, 132, 244), Color.FromArgb(28, 90, 200),
-                System.Drawing.Drawing2D.LinearGradientMode.ForwardDiagonal);
-            g.FillPath(bgBrush, bgPath);
-
-            // Draw two curved arrows forming a cycle (rephrase symbol)
-            using var pen = new Pen(Color.White, 2.4f)
-            {
-                StartCap = System.Drawing.Drawing2D.LineCap.Round,
-                EndCap = System.Drawing.Drawing2D.LineCap.Custom,
-                CustomEndCap = new System.Drawing.Drawing2D.AdjustableArrowCap(3f, 3f, true)
-            };
-
-            // Top arc: sweeps clockwise from left to right
-            g.DrawArc(pen, 8, 6, 16, 14, 200, 160);
-            // Bottom arc: sweeps clockwise from right to left
-            g.DrawArc(pen, 8, 12, 16, 14, 20, 160);
-        }
-        return Icon.FromHandle(bmp.GetHicon());
+        // Fallback: extract from exe
+        var exeIcon = Icon.ExtractAssociatedIcon(Environment.ProcessPath!);
+        return exeIcon != null ? new Icon(exeIcon, 32, 32) : SystemIcons.Application;
     }
 
     private static System.Drawing.Drawing2D.GraphicsPath RoundedRect(Rectangle bounds, int radius)

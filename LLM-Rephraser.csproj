@@ -8,9 +8,15 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <AssemblyName>LLM-Rephraser</AssemblyName>
     <RootNamespace>LlmRephraser</RootNamespace>
-    <ApplicationIcon>app.ico</ApplicationIcon>
-    <Version>1.2.40</Version>
+    <ApplicationIcon>rephrase-tool.ico</ApplicationIcon>
+    <Version>1.2.41</Version>
   </PropertyGroup>
+
+  <ItemGroup>
+    <Content Include="rephrase-tool.ico">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="Syncfusion.Core.WinForms" Version="33.1.44" />

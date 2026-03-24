@@ -1,4 +1,5 @@
 using System.Drawing;
+using System.IO;
 using System.Windows.Forms;
 
 namespace LlmRephraser;
@@ -47,6 +48,8 @@ partial class ResultForm
         MaximizeBox = false;
         MinimizeBox = false;
         StartPosition = FormStartPosition.CenterParent;
+        var icoPath = Path.Combine(AppContext.BaseDirectory, "rephrase-tool.ico");
+        if (File.Exists(icoPath)) Icon = new Icon(icoPath);
         DoubleBuffered = true;
 
         // ═════════════════════════════════════════════════════════════════
