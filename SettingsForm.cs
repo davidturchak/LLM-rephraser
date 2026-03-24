@@ -261,7 +261,7 @@ public sealed class SettingsForm : Form
 
         // ═══ TAB 2: OpenRouter ═══
         var openRouterTab = new TabPageAdv("OpenRouter") { BackColor = ThemeColors.BgPage };
-        var orCard = new SectionCard { Location = new Point(4, 4), Size = new Size(cardW, formH - 96), Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right | AnchorStyles.Bottom };
+        var orCard = new SectionCard { Location = new Point(4, 4), Size = new Size(cardW, formH - 136), Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right | AnchorStyles.Bottom };
         var orSectionLabel = MakeSectionLabel("BROWSE FREE MODELS"); orSectionLabel.Location = new Point(innerPad, 10);
         var orDescription = new Label { Text = "Browse free models from OpenRouter.ai and create a profile with one click.", Location = new Point(innerPad, 28), Size = new Size(cardW - innerPad * 2, 18), ForeColor = ThemeColors.TextMuted, Font = new Font("Segoe UI", 8f), BackColor = Color.Transparent, Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right };
 
@@ -270,22 +270,22 @@ public sealed class SettingsForm : Form
         var searchLabel = new Label { Text = "Search:", Location = new Point(innerPad, 90), Size = new Size(50, 17), TextAlign = ContentAlignment.MiddleLeft, ForeColor = ThemeColors.TextBody, BackColor = Color.Transparent };
         _orSearchBox = new TextBox { Location = new Point(68, 88), Size = new Size(200, 23) }; _orSearchBox.TextChanged += OrSearch_Changed;
 
-        _modelListView = new ListView { Location = new Point(innerPad, 118), Size = new Size(cardW - innerPad * 2, formH - 96 - 118 - 58), View = View.Details, FullRowSelect = true, GridLines = true, MultiSelect = false, HideSelection = false, BorderStyle = BorderStyle.FixedSingle, Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right | AnchorStyles.Bottom };
+        _modelListView = new ListView { Location = new Point(innerPad, 118), Size = new Size(cardW - innerPad * 2, formH - 136 - 118 - 8), View = View.Details, FullRowSelect = true, GridLines = true, MultiSelect = false, HideSelection = false, BorderStyle = BorderStyle.FixedSingle, Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right | AnchorStyles.Bottom };
         _modelListView.Columns.Add("Model Name", 210); _modelListView.Columns.Add("ID", 160); _modelListView.Columns.Add("Context", 80, HorizontalAlignment.Right);
 
-        int orCardH = formH - 96;
-        _createProfileButton = MakePrimary("Create Profile from Selected", 210, 30); _createProfileButton.Location = new Point(innerPad, orCardH - 44); _createProfileButton.Enabled = false; _createProfileButton.Anchor = AnchorStyles.Bottom | AnchorStyles.Left; _createProfileButton.Click += CreateProfileFromModel_Click;
+        orCard.Controls.AddRange([orSectionLabel, orDescription, _fetchButton, _orStatusLabel, searchLabel, _orSearchBox, _modelListView]);
+
+        _createProfileButton = MakePrimary("Create Profile from Selected", 210, 30); _createProfileButton.Location = new Point(4 + innerPad, formH - 130); _createProfileButton.Enabled = false; _createProfileButton.Anchor = AnchorStyles.Bottom | AnchorStyles.Left; _createProfileButton.Click += CreateProfileFromModel_Click;
         _modelListView.SelectedIndexChanged += (_, _) => _createProfileButton.Enabled = _modelListView.SelectedItems.Count > 0;
 
-        var orKeyLink = new LinkLabel { Text = "Get your OpenRouter API key", Location = new Point(234, orCardH - 38), AutoSize = true, LinkColor = ThemeColors.Accent, ActiveLinkColor = ThemeColors.AccentHover, BackColor = Color.Transparent, Anchor = AnchorStyles.Bottom | AnchorStyles.Left };
+        var orKeyLink = new LinkLabel { Text = "Get your OpenRouter API key", Location = new Point(4 + 230, formH - 124), AutoSize = true, LinkColor = ThemeColors.Accent, ActiveLinkColor = ThemeColors.AccentHover, BackColor = Color.Transparent, Anchor = AnchorStyles.Bottom | AnchorStyles.Left };
         orKeyLink.LinkClicked += (_, _) => System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo { FileName = "https://openrouter.ai/workspaces/default/keys", UseShellExecute = true });
 
-        orCard.Controls.AddRange([orSectionLabel, orDescription, _fetchButton, _orStatusLabel, searchLabel, _orSearchBox, _modelListView, _createProfileButton, orKeyLink]);
-        openRouterTab.Controls.Add(orCard);
+        openRouterTab.Controls.AddRange([orCard, _createProfileButton, orKeyLink]);
 
         // ═══ TAB 3: Google AI Studio ═══
         var gaiTab = new TabPageAdv("Google AI Studio") { BackColor = ThemeColors.BgPage };
-        var gaiCard = new SectionCard { Location = new Point(4, 4), Size = new Size(cardW, formH - 96), Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right | AnchorStyles.Bottom };
+        var gaiCard = new SectionCard { Location = new Point(4, 4), Size = new Size(cardW, formH - 136), Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right | AnchorStyles.Bottom };
         var gaiSectionLabel = MakeSectionLabel("BROWSE GEMINI MODELS"); gaiSectionLabel.Location = new Point(innerPad, 10);
         var gaiDescription = new Label { Text = "Browse Gemini models from Google AI Studio and create a profile with one click.", Location = new Point(innerPad, 28), Size = new Size(cardW - innerPad * 2, 18), ForeColor = ThemeColors.TextMuted, Font = new Font("Segoe UI", 8f), BackColor = Color.Transparent, Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right };
 
@@ -297,22 +297,22 @@ public sealed class SettingsForm : Form
         var gaiSearchLabel = new Label { Text = "Search:", Location = new Point(innerPad, 108), Size = new Size(50, 17), TextAlign = ContentAlignment.MiddleLeft, ForeColor = ThemeColors.TextBody, BackColor = Color.Transparent };
         _gaiSearchBox = new TextBox { Location = new Point(68, 106), Size = new Size(200, 23) }; _gaiSearchBox.TextChanged += GaiSearch_Changed;
 
-        _gaiModelListView = new ListView { Location = new Point(innerPad, 136), Size = new Size(cardW - innerPad * 2, formH - 96 - 136 - 58), View = View.Details, FullRowSelect = true, GridLines = true, MultiSelect = false, HideSelection = false, BorderStyle = BorderStyle.FixedSingle, Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right | AnchorStyles.Bottom };
+        _gaiModelListView = new ListView { Location = new Point(innerPad, 136), Size = new Size(cardW - innerPad * 2, formH - 136 - 136 - 8), View = View.Details, FullRowSelect = true, GridLines = true, MultiSelect = false, HideSelection = false, BorderStyle = BorderStyle.FixedSingle, Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right | AnchorStyles.Bottom };
         _gaiModelListView.Columns.Add("Display Name", 190); _gaiModelListView.Columns.Add("Model ID", 170); _gaiModelListView.Columns.Add("Context", 80, HorizontalAlignment.Right);
 
-        int gaiCardH = formH - 96;
-        _gaiCreateProfileButton = MakePrimary("Create Profile from Selected", 210, 30); _gaiCreateProfileButton.Location = new Point(innerPad, gaiCardH - 44); _gaiCreateProfileButton.Enabled = false; _gaiCreateProfileButton.Anchor = AnchorStyles.Bottom | AnchorStyles.Left; _gaiCreateProfileButton.Click += GaiCreateProfile_Click;
+        gaiCard.Controls.AddRange([gaiSectionLabel, gaiDescription, gaiKeyLabel, _gaiApiKeyBox, _gaiFetchButton, _gaiStatusLabel, gaiSearchLabel, _gaiSearchBox, _gaiModelListView]);
+
+        _gaiCreateProfileButton = MakePrimary("Create Profile from Selected", 210, 30); _gaiCreateProfileButton.Location = new Point(4 + innerPad, formH - 130); _gaiCreateProfileButton.Enabled = false; _gaiCreateProfileButton.Anchor = AnchorStyles.Bottom | AnchorStyles.Left; _gaiCreateProfileButton.Click += GaiCreateProfile_Click;
         _gaiModelListView.SelectedIndexChanged += (_, _) => _gaiCreateProfileButton.Enabled = _gaiModelListView.SelectedItems.Count > 0;
 
-        var gaiKeyLink = new LinkLabel { Text = "Get your Google AI Studio API key", Location = new Point(234, gaiCardH - 38), AutoSize = true, LinkColor = ThemeColors.Accent, ActiveLinkColor = ThemeColors.AccentHover, BackColor = Color.Transparent, Anchor = AnchorStyles.Bottom | AnchorStyles.Left };
+        var gaiKeyLink = new LinkLabel { Text = "Get your Google AI Studio API key", Location = new Point(4 + 230, formH - 124), AutoSize = true, LinkColor = ThemeColors.Accent, ActiveLinkColor = ThemeColors.AccentHover, BackColor = Color.Transparent, Anchor = AnchorStyles.Bottom | AnchorStyles.Left };
         gaiKeyLink.LinkClicked += (_, _) => System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo { FileName = "https://aistudio.google.com/apikey", UseShellExecute = true });
 
-        gaiCard.Controls.AddRange([gaiSectionLabel, gaiDescription, gaiKeyLabel, _gaiApiKeyBox, _gaiFetchButton, _gaiStatusLabel, gaiSearchLabel, _gaiSearchBox, _gaiModelListView, _gaiCreateProfileButton, gaiKeyLink]);
-        gaiTab.Controls.Add(gaiCard);
+        gaiTab.Controls.AddRange([gaiCard, _gaiCreateProfileButton, gaiKeyLink]);
 
         // ═══ TAB 4: NVIDIA ═══
         var nvTab = new TabPageAdv("NVIDIA") { BackColor = ThemeColors.BgPage };
-        var nvCard = new SectionCard { Location = new Point(4, 4), Size = new Size(cardW, formH - 96), Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right | AnchorStyles.Bottom };
+        var nvCard = new SectionCard { Location = new Point(4, 4), Size = new Size(cardW, formH - 136), Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right | AnchorStyles.Bottom };
         var nvSectionLabel = MakeSectionLabel("BROWSE NVIDIA MODELS"); nvSectionLabel.Location = new Point(innerPad, 10);
         var nvDescription = new Label { Text = "Browse models from NVIDIA Build and create a profile with one click.", Location = new Point(innerPad, 28), Size = new Size(cardW - innerPad * 2, 18), ForeColor = ThemeColors.TextMuted, Font = new Font("Segoe UI", 8f), BackColor = Color.Transparent, Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right };
 
@@ -322,22 +322,22 @@ public sealed class SettingsForm : Form
         var nvSearchLabel = new Label { Text = "Search:", Location = new Point(innerPad, 90), Size = new Size(50, 17), TextAlign = ContentAlignment.MiddleLeft, ForeColor = ThemeColors.TextBody, BackColor = Color.Transparent };
         _nvSearchBox = new TextBox { Location = new Point(68, 88), Size = new Size(200, 23) }; _nvSearchBox.TextChanged += NvSearch_Changed;
 
-        _nvModelListView = new ListView { Location = new Point(innerPad, 118), Size = new Size(cardW - innerPad * 2, formH - 96 - 118 - 58), View = View.Details, FullRowSelect = true, GridLines = true, MultiSelect = false, HideSelection = false, BorderStyle = BorderStyle.FixedSingle, Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right | AnchorStyles.Bottom };
+        _nvModelListView = new ListView { Location = new Point(innerPad, 118), Size = new Size(cardW - innerPad * 2, formH - 136 - 118 - 8), View = View.Details, FullRowSelect = true, GridLines = true, MultiSelect = false, HideSelection = false, BorderStyle = BorderStyle.FixedSingle, Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right | AnchorStyles.Bottom };
         _nvModelListView.Columns.Add("Model ID", 290); _nvModelListView.Columns.Add("Owner", 160);
 
-        int nvCardH = formH - 96;
-        _nvCreateProfileButton = MakePrimary("Create Profile from Selected", 210, 30); _nvCreateProfileButton.Location = new Point(innerPad, nvCardH - 44); _nvCreateProfileButton.Enabled = false; _nvCreateProfileButton.Anchor = AnchorStyles.Bottom | AnchorStyles.Left; _nvCreateProfileButton.Click += NvCreateProfile_Click;
+        nvCard.Controls.AddRange([nvSectionLabel, nvDescription, _nvFetchButton, _nvStatusLabel, nvSearchLabel, _nvSearchBox, _nvModelListView]);
+
+        _nvCreateProfileButton = MakePrimary("Create Profile from Selected", 210, 30); _nvCreateProfileButton.Location = new Point(4 + innerPad, formH - 130); _nvCreateProfileButton.Enabled = false; _nvCreateProfileButton.Anchor = AnchorStyles.Bottom | AnchorStyles.Left; _nvCreateProfileButton.Click += NvCreateProfile_Click;
         _nvModelListView.SelectedIndexChanged += (_, _) => _nvCreateProfileButton.Enabled = _nvModelListView.SelectedItems.Count > 0;
 
-        var nvKeyLink = new LinkLabel { Text = "Get your NVIDIA API key", Location = new Point(234, nvCardH - 38), AutoSize = true, LinkColor = ThemeColors.Accent, ActiveLinkColor = ThemeColors.AccentHover, BackColor = Color.Transparent, Anchor = AnchorStyles.Bottom | AnchorStyles.Left };
+        var nvKeyLink = new LinkLabel { Text = "Get your NVIDIA API key", Location = new Point(4 + 230, formH - 124), AutoSize = true, LinkColor = ThemeColors.Accent, ActiveLinkColor = ThemeColors.AccentHover, BackColor = Color.Transparent, Anchor = AnchorStyles.Bottom | AnchorStyles.Left };
         nvKeyLink.LinkClicked += (_, _) => System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo { FileName = "https://build.nvidia.com/models", UseShellExecute = true });
 
-        nvCard.Controls.AddRange([nvSectionLabel, nvDescription, _nvFetchButton, _nvStatusLabel, nvSearchLabel, _nvSearchBox, _nvModelListView, _nvCreateProfileButton, nvKeyLink]);
-        nvTab.Controls.Add(nvCard);
+        nvTab.Controls.AddRange([nvCard, _nvCreateProfileButton, nvKeyLink]);
 
         // ═══ TAB 5: Claude ═══
         var claudeTab = new TabPageAdv("Claude") { BackColor = ThemeColors.BgPage };
-        var claudeCard = new SectionCard { Location = new Point(4, 4), Size = new Size(cardW, formH - 96), Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right | AnchorStyles.Bottom };
+        var claudeCard = new SectionCard { Location = new Point(4, 4), Size = new Size(cardW, formH - 136), Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right | AnchorStyles.Bottom };
         var claudeSectionLabel = MakeSectionLabel("BROWSE CLAUDE MODELS"); claudeSectionLabel.Location = new Point(innerPad, 10);
         var claudeDescription = new Label { Text = "Browse Claude models from Anthropic and create a profile with one click.", Location = new Point(innerPad, 28), Size = new Size(cardW - innerPad * 2, 18), ForeColor = ThemeColors.TextMuted, Font = new Font("Segoe UI", 8f), BackColor = Color.Transparent, Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right };
 
@@ -349,18 +349,18 @@ public sealed class SettingsForm : Form
         var claudeSearchLabel = new Label { Text = "Search:", Location = new Point(innerPad, 108), Size = new Size(50, 17), TextAlign = ContentAlignment.MiddleLeft, ForeColor = ThemeColors.TextBody, BackColor = Color.Transparent };
         _claudeSearchBox = new TextBox { Location = new Point(68, 106), Size = new Size(200, 23) }; _claudeSearchBox.TextChanged += ClaudeSearch_Changed;
 
-        _claudeModelListView = new ListView { Location = new Point(innerPad, 136), Size = new Size(cardW - innerPad * 2, formH - 96 - 136 - 58), View = View.Details, FullRowSelect = true, GridLines = true, MultiSelect = false, HideSelection = false, BorderStyle = BorderStyle.FixedSingle, Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right | AnchorStyles.Bottom };
+        _claudeModelListView = new ListView { Location = new Point(innerPad, 136), Size = new Size(cardW - innerPad * 2, formH - 136 - 136 - 8), View = View.Details, FullRowSelect = true, GridLines = true, MultiSelect = false, HideSelection = false, BorderStyle = BorderStyle.FixedSingle, Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right | AnchorStyles.Bottom };
         _claudeModelListView.Columns.Add("Display Name", 190); _claudeModelListView.Columns.Add("Model ID", 170); _claudeModelListView.Columns.Add("Context", 80, HorizontalAlignment.Right);
 
-        int claudeCardH = formH - 96;
-        _claudeCreateProfileButton = MakePrimary("Create Profile from Selected", 210, 30); _claudeCreateProfileButton.Location = new Point(innerPad, claudeCardH - 44); _claudeCreateProfileButton.Enabled = false; _claudeCreateProfileButton.Anchor = AnchorStyles.Bottom | AnchorStyles.Left; _claudeCreateProfileButton.Click += ClaudeCreateProfile_Click;
+        claudeCard.Controls.AddRange([claudeSectionLabel, claudeDescription, claudeKeyLabel, _claudeApiKeyBox, _claudeFetchButton, _claudeStatusLabel, claudeSearchLabel, _claudeSearchBox, _claudeModelListView]);
+
+        _claudeCreateProfileButton = MakePrimary("Create Profile from Selected", 210, 30); _claudeCreateProfileButton.Location = new Point(4 + innerPad, formH - 130); _claudeCreateProfileButton.Enabled = false; _claudeCreateProfileButton.Anchor = AnchorStyles.Bottom | AnchorStyles.Left; _claudeCreateProfileButton.Click += ClaudeCreateProfile_Click;
         _claudeModelListView.SelectedIndexChanged += (_, _) => _claudeCreateProfileButton.Enabled = _claudeModelListView.SelectedItems.Count > 0;
 
-        var claudeKeyLink = new LinkLabel { Text = "Get your Anthropic API key", Location = new Point(234, claudeCardH - 38), AutoSize = true, LinkColor = ThemeColors.Accent, ActiveLinkColor = ThemeColors.AccentHover, BackColor = Color.Transparent, Anchor = AnchorStyles.Bottom | AnchorStyles.Left };
+        var claudeKeyLink = new LinkLabel { Text = "Get your Anthropic API key", Location = new Point(4 + 230, formH - 124), AutoSize = true, LinkColor = ThemeColors.Accent, ActiveLinkColor = ThemeColors.AccentHover, BackColor = Color.Transparent, Anchor = AnchorStyles.Bottom | AnchorStyles.Left };
         claudeKeyLink.LinkClicked += (_, _) => System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo { FileName = "https://console.anthropic.com/settings/keys", UseShellExecute = true });
 
-        claudeCard.Controls.AddRange([claudeSectionLabel, claudeDescription, claudeKeyLabel, _claudeApiKeyBox, _claudeFetchButton, _claudeStatusLabel, claudeSearchLabel, _claudeSearchBox, _claudeModelListView, _claudeCreateProfileButton, claudeKeyLink]);
-        claudeTab.Controls.Add(claudeCard);
+        claudeTab.Controls.AddRange([claudeCard, _claudeCreateProfileButton, claudeKeyLink]);
 
         // Assemble
         tabControl.Controls.Add(settingsTab); tabControl.Controls.Add(openRouterTab); tabControl.Controls.Add(gaiTab); tabControl.Controls.Add(nvTab); tabControl.Controls.Add(claudeTab);
