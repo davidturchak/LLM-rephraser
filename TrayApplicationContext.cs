@@ -23,7 +23,6 @@ public sealed class TrayApplicationContext : ApplicationContext
     private const byte VK_SHIFT = 0x10;
     private const byte VK_C = 0x43;
     private const byte VK_V = 0x56;
-    private const byte VK_A = 0x41;
     private const uint KEYEVENTF_KEYUP = 0x0002;
 
     private readonly NotifyIcon _trayIcon;
@@ -510,9 +509,7 @@ public sealed class TrayApplicationContext : ApplicationContext
             SetForegroundWindow(_sourceWindow);
             await Task.Delay(100);
 
-            // Select all in the field, then paste
-            SimulateCtrlA();
-            await Task.Delay(50);
+            // Paste over the still-active selection
             SimulateCtrlV();
             await Task.Delay(150);
         }
@@ -567,14 +564,6 @@ public sealed class TrayApplicationContext : ApplicationContext
         keybd_event(VK_CONTROL, 0, 0, UIntPtr.Zero);
         keybd_event(VK_V, 0, 0, UIntPtr.Zero);
         keybd_event(VK_V, 0, KEYEVENTF_KEYUP, UIntPtr.Zero);
-        keybd_event(VK_CONTROL, 0, KEYEVENTF_KEYUP, UIntPtr.Zero);
-    }
-
-    private static void SimulateCtrlA()
-    {
-        keybd_event(VK_CONTROL, 0, 0, UIntPtr.Zero);
-        keybd_event(VK_A, 0, 0, UIntPtr.Zero);
-        keybd_event(VK_A, 0, KEYEVENTF_KEYUP, UIntPtr.Zero);
         keybd_event(VK_CONTROL, 0, KEYEVENTF_KEYUP, UIntPtr.Zero);
     }
 

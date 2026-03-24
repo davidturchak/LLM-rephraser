@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Globalization;
@@ -69,41 +68,6 @@ public sealed class ResultForm : Form
             using var accentBrush = new SolidBrush(_accent);
             g.FillRectangle(accentBrush, 0, 0, AccentW, Height);
         }
-    }
-
-    // ── Word-level diff ──────────────────────────────────────────────────
-    private static List<(string word, bool added, bool removed)> WordDiff(string original, string suggested)
-    {
-        var origWords = original.Split(' ');
-        var suggWords = suggested.Split(' ');
-        int[,] dp = new int[origWords.Length + 1, suggWords.Length + 1];
-        for (int i = 1; i <= origWords.Length; i++)
-            for (int j = 1; j <= suggWords.Length; j++)
-                dp[i, j] = origWords[i - 1] == suggWords[j - 1]
-                    ? dp[i - 1, j - 1] + 1
-                    : Math.Max(dp[i - 1, j], dp[i, j - 1]);
-
-        var result = new List<(string, bool, bool)>();
-        int oi = origWords.Length, si = suggWords.Length;
-        while (oi > 0 || si > 0)
-        {
-            if (oi > 0 && si > 0 && origWords[oi - 1] == suggWords[si - 1])
-            {
-                result.Insert(0, (origWords[oi - 1], false, false));
-                oi--; si--;
-            }
-            else if (si > 0 && (oi == 0 || dp[oi, si - 1] >= dp[oi - 1, si]))
-            {
-                result.Insert(0, (suggWords[si - 1], true, false));
-                si--;
-            }
-            else
-            {
-                result.Insert(0, (origWords[oi - 1], false, true));
-                oi--;
-            }
-        }
-        return result;
     }
 
     public ResultForm(string styleName, string originalText, string suggestedText)
@@ -234,72 +198,6 @@ public sealed class ResultForm : Form
         suggCard.Controls.AddRange([suggLabel, suggHint, _suggestedBox]);
         y += suggCardH + pad;
 
-        // ── Diff toggle ──
-        var diffLink = new LinkLabel
-        {
-            Text = "Show diff",
-            Location = new Point(pad, y + 6),
-            AutoSize = true,
-            Font = new Font("Segoe UI", 8.5f),
-            LinkColor = AccentSugg,
-            ActiveLinkColor = PrimaryHover
-        };
-
-        var diffBox = new RichTextBox
-        {
-            Location = new Point(pad, y + 28),
-            Size = new Size(innerW, 0),
-            ReadOnly = true,
-            BorderStyle = BorderStyle.FixedSingle,
-            BackColor = Color.White,
-            Font = textFont,
-            Visible = false,
-            ScrollBars = RichTextBoxScrollBars.Vertical
-        };
-
-        bool diffVisible = false;
-        diffLink.Click += (_, _) =>
-        {
-            diffVisible = !diffVisible;
-            diffLink.Text = diffVisible ? "Hide diff" : "Show diff";
-            if (diffVisible)
-            {
-                diffBox.Clear();
-                var diffs = WordDiff(originalText, suggestedText);
-                foreach (var (word, added, removed) in diffs)
-                {
-                    if (removed)
-                    {
-                        diffBox.SelectionColor = Color.FromArgb(220, 38, 38);
-                        diffBox.SelectionFont = new Font(textFont, FontStyle.Strikeout);
-                        diffBox.AppendText(word + " ");
-                    }
-                    else if (added)
-                    {
-                        diffBox.SelectionColor = Color.FromArgb(22, 163, 74);
-                        diffBox.SelectionFont = textFont;
-                        diffBox.AppendText(word + " ");
-                    }
-                    else
-                    {
-                        diffBox.SelectionColor = TextBody;
-                        diffBox.SelectionFont = textFont;
-                        diffBox.AppendText(word + " ");
-                    }
-                }
-                int diffLines = Math.Min(6, diffBox.Lines.Length + 1);
-                diffBox.Height = diffLines * lineH + 12;
-                diffBox.Visible = true;
-                var newH = y + 28 + diffBox.Height + pad;
-                ClientSize = new Size(formW, Math.Min(newH, availH - 40));
-            }
-            else
-            {
-                diffBox.Visible = false;
-                ClientSize = new Size(formW, y + pad);
-            }
-        };
-
         // ── Buttons ──
         var cancelButton = new Button
         {
@@ -337,7 +235,7 @@ public sealed class ResultForm : Form
         int finalH = Math.Min(y, availH - 40);
         ClientSize = new Size(formW, finalH);
 
-        Controls.AddRange([origCard, suggCard, diffLink, diffBox, acceptButton, cancelButton]);
+        Controls.AddRange([origCard, suggCard, acceptButton, cancelButton]);
 
         AcceptButton = acceptButton;
         CancelButton = cancelButton;
