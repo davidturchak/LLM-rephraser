@@ -330,11 +330,12 @@ public sealed class TrayApplicationContext : ApplicationContext
         }
         catch { /* clipboard may be locked */ }
 
-        // Release modifier keys that are still physically held from the hotkey combo
+        // Release modifier keys and wait until they are physically released
         ReleaseModifierKeys();
-        await Task.Delay(150);
+        await WaitForModifierRelease();
 
-        // Simulate Ctrl+C to copy selected text
+        // Ensure source window still has focus, then copy
+        SetForegroundWindow(_sourceWindow);
         SimulateCtrlC();
         await Task.Delay(200);
 
@@ -550,6 +551,25 @@ public sealed class TrayApplicationContext : ApplicationContext
         keybd_event(VK_CONTROL, 0, KEYEVENTF_KEYUP, UIntPtr.Zero);
         keybd_event(VK_SHIFT, 0, KEYEVENTF_KEYUP, UIntPtr.Zero);
         keybd_event(0x12 /* VK_MENU / Alt */, 0, KEYEVENTF_KEYUP, UIntPtr.Zero);
+    }
+
+    [DllImport("user32.dll")]
+    private static extern short GetAsyncKeyState(int vKey);
+
+    private static async Task WaitForModifierRelease()
+    {
+        const int VK_RBUTTON = 0x02;
+        // Wait until Ctrl, Shift, Alt, and right mouse button are all released (max ~1.5s)
+        for (int i = 0; i < 60; i++)
+        {
+            bool anyHeld = (GetAsyncKeyState(VK_CONTROL) & 0x8000) != 0
+                        || (GetAsyncKeyState(VK_SHIFT) & 0x8000) != 0
+                        || (GetAsyncKeyState(0x12) & 0x8000) != 0
+                        || (GetAsyncKeyState(VK_RBUTTON) & 0x8000) != 0;
+            if (!anyHeld) break;
+            await Task.Delay(25);
+        }
+        await Task.Delay(50); // small extra settle time
     }
 
     private static void SimulateCtrlC()
