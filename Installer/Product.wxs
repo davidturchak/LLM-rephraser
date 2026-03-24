@@ -3,7 +3,7 @@
 
   <Package Name="LLM-Rephraser"
            Manufacturer="David Turchak"
-           Version="1.2.41.0"
+           Version="1.2.42.0"
            UpgradeCode="1E4E9E57-9523-4C82-A7AD-5F36A5EDF05C"
            Compressed="yes"
            InstallerVersion="500"
@@ -56,6 +56,12 @@
         <File Id="LLMRephraser.exe"
               Name="LLM-Rephraser.exe"
               Source="..\bin\Release\net10.0-windows\win-x64\publish\LLM-Rephraser.exe"
+              KeyPath="yes" />
+      </Component>
+      <Component Id="AppIconFile" Guid="A3B7D1E2-4F89-4C6A-9D12-7E5F8A3B6C01">
+        <File Id="RephraseToolIco"
+              Name="rephrase-tool.ico"
+              Source="..\rephrase-tool.ico"
               KeyPath="yes" />
       </Component>
     </ComponentGroup>
