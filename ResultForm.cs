@@ -61,12 +61,6 @@ public sealed partial class ResultForm : Form
         // ── Event wiring ────────────────────────────────────────────────
         rtbSuggestion.TextChanged += RtbSuggestion_TextChanged;
 
-        rtbOriginal.SizeChanged += (_, _) =>
-            pnlOriginalAccent.Height = rtbOriginal.Height;
-
-        rtbSuggestion.SizeChanged += (_, _) =>
-            pnlSuggestionAccent.Height = rtbSuggestion.Height;
-
         btnAccept.Click += BtnAccept_Click;
         btnCancel.Click += (_, _) => Close();
 
@@ -80,9 +74,15 @@ public sealed partial class ResultForm : Form
         // Triple-enforce button label
         btnAccept.Text = "Accept && Replace";
 
-        // Sync accent bar heights after layout
+        // Sync accent bar heights after layout is complete
         pnlOriginalAccent.Height = rtbOriginal.Height;
         pnlSuggestionAccent.Height = rtbSuggestion.Height;
+
+        // Keep accent bars in sync on any future resize
+        rtbOriginal.SizeChanged += (_, _) =>
+            pnlOriginalAccent.Height = rtbOriginal.Height;
+        rtbSuggestion.SizeChanged += (_, _) =>
+            pnlSuggestionAccent.Height = rtbSuggestion.Height;
 
         // Focus suggestion box so caret appears immediately
         rtbSuggestion.Focus();

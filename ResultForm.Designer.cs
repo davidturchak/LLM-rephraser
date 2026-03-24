@@ -59,7 +59,7 @@ partial class ResultForm
             Dock = DockStyle.Fill,
             ColumnCount = 1,
             AutoSize = false,
-            Padding = new Padding(20),
+            Padding = new Padding(12, 10, 12, 10),
             BackColor = ColorTranslator.FromHtml("#1e1e1e")
         };
         mainLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100f));
@@ -90,8 +90,7 @@ partial class ResultForm
             Width = 3,
             BackColor = ColorTranslator.FromHtml("#555555"),
             BorderStyle = BorderStyle.None,
-            Dock = DockStyle.Left,
-            Anchor = AnchorStyles.Top
+            Dock = DockStyle.Left
         };
 
         rtbOriginal = new RichTextBox
@@ -100,7 +99,7 @@ partial class ResultForm
             BackColor = ColorTranslator.FromHtml("#0e0e0e"),
             ForeColor = ColorTranslator.FromHtml("#666666"),
             BorderStyle = BorderStyle.None,
-            ScrollBars = RichTextBoxScrollBars.Vertical,
+            ScrollBars = RichTextBoxScrollBars.None,
             WordWrap = true,
             DetectUrls = false,
             TabStop = false,
@@ -168,8 +167,7 @@ partial class ResultForm
             Width = 3,
             BackColor = ColorTranslator.FromHtml("#b8952a"),
             BorderStyle = BorderStyle.None,
-            Dock = DockStyle.Left,
-            Anchor = AnchorStyles.Top
+            Dock = DockStyle.Left
         };
 
         rtbSuggestion = new RichTextBox
