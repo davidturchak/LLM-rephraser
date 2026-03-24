@@ -1,13 +1,12 @@
 # LLM-Rephraser
 
-A Windows system tray tool for rephrasing, translating, and fixing text in **any application** using LLM APIs. Select text, trigger via hotkey or Shift+Right-Click, choose a style, review the suggestion, and replace.
+A Windows system tray tool for rephrasing, translating, and fixing text in **any application** using LLM APIs. Select text, trigger via hotkey, choose a style, review the suggestion, and replace.
 
 Supports **OpenAI**, **Anthropic Claude**, **Google Gemini**, **NVIDIA**, **OpenRouter**, **Ollama**, **LM Studio**, **vLLM**, **LiteLLM**, and any OpenAI-compatible provider.
 
 ## Features
 
 - **Global hotkey** (`Ctrl+Shift+R`) — works across all Windows applications
-- **Shift+Right-Click trigger** — optional mouse-based activation (configurable in settings)
 - **Auto-detect text selection** — select text in any app and the style picker appears automatically (Grammarly-style, configurable)
 - **Windows right-click menu** — optional "Rephrase with LLM-Rephraser" entry in the Windows Explorer/Desktop context menu
 - **Rephrasing styles** — Rephrase, Make Formal, Make Concise, Fix Grammar
@@ -25,7 +24,7 @@ Supports **OpenAI**, **Anthropic Claude**, **Google Gemini**, **NVIDIA**, **Open
 ## How It Works
 
 ```
-Select text → style picker appears automatically (or use Ctrl+Shift+R / Shift+Right-Click) →
+Select text → style picker appears automatically (or use Ctrl+Shift+R) →
 Choose a style → API returns suggestion →
 Review/edit in dialog → Accept: pastes replacement back | Cancel: nothing changes
 ```
@@ -118,7 +117,6 @@ Default languages: English, Hebrew, Arabic, Russian.
 
 | Option | Description |
 |---|---|
-| **Shift+Right-Click** | Enable/disable the Shift+Right-Click trigger (off by default) |
 | **Show floating toolbar on text selection** | Auto-show style picker when text is selected by dragging (on by default) |
 | **Add to Windows right-click menu** | Register "Rephrase with LLM-Rephraser" in Windows Explorer/Desktop context menu |
 | **Start with Windows** | Launch LLM-Rephraser automatically on Windows startup |
@@ -149,10 +147,9 @@ LLM-Rephraser/
 ├── SettingsForm.cs             # Settings dialog (profiles, model browsers, options)
 ├── ResultForm.cs               # Original vs Suggested comparison dialog
 ├── HotkeyWindow.cs             # NativeWindow subclass for WM_HOTKEY
-├── MouseHookWindow.cs          # Low-level mouse hook for Shift+Right-Click
 ├── SelectionDetector.cs        # Detects text selection gestures (mouse drag)
 ├── ContextMenuHelper.cs        # Windows Explorer/Desktop context menu registration
-├── app.ico                     # Application icon (multi-size)
+├── rephrase-tool.ico           # Application icon (multi-size)
 ├── build-release.sh            # Build, version bump, package, commit & push
 ├── Installer/
 │   ├── Product.wxs             # WiX v6 installer source
