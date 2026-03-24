@@ -27,6 +27,7 @@ public sealed class SettingsForm : Form
     private readonly Label _testResultLabel;
     private readonly CheckBoxAdv _shiftRightClickBox;
     private readonly CheckBoxAdv _startWithWindowsBox;
+    private readonly ComboBoxAdv _themeBox;
     private readonly ListBox _langListBox;
     private readonly Button _langAddButton;
     private readonly Button _langRemoveButton;
@@ -71,39 +72,30 @@ public sealed class SettingsForm : Form
         ("Anthropic Claude",  ApiProvider.Anthropic,        "https://api.anthropic.com/v1/messages",      "claude-sonnet-4-20250514")
     ];
 
-    // ── Palette ──
-    private static readonly Color BgPage       = Color.FromArgb(248, 250, 252);
-    private static readonly Color BgCard       = Color.White;
-    private static readonly Color BorderCard   = Color.FromArgb(226, 232, 240);
-    private static readonly Color AccentPrimary = Color.FromArgb(99, 102, 241);
-    private static readonly Color AccentHover  = Color.FromArgb(79,  70, 229);
-    private static readonly Color TextBody     = Color.FromArgb(51,  65,  85);
-    private static readonly Color TextMuted    = Color.FromArgb(148, 163, 184);
-
     private sealed class SectionCard : Panel
     {
-        public SectionCard() { BackColor = BgCard; DoubleBuffered = true; SetStyle(ControlStyles.ResizeRedraw, true); }
-        protected override void OnPaint(PaintEventArgs e) { base.OnPaint(e); e.Graphics.SmoothingMode = SmoothingMode.AntiAlias; using var pen = new Pen(BorderCard, 1f); e.Graphics.DrawRectangle(pen, 0, 0, Width - 1, Height - 1); }
+        public SectionCard() { BackColor = ThemeColors.BgCard; DoubleBuffered = true; SetStyle(ControlStyles.ResizeRedraw, true); }
+        protected override void OnPaint(PaintEventArgs e) { base.OnPaint(e); e.Graphics.SmoothingMode = SmoothingMode.AntiAlias; using var pen = new Pen(ThemeColors.BorderCard, 1f); e.Graphics.DrawRectangle(pen, 0, 0, Width - 1, Height - 1); }
     }
 
     private static Button MakePrimary(string text, int w, int h)
     {
-        var btn = new Button { Text = text, Size = new Size(w, h), FlatStyle = FlatStyle.Flat, BackColor = AccentPrimary, ForeColor = Color.White, Font = new Font("Segoe UI", 9f, FontStyle.Bold), Cursor = Cursors.Hand };
+        var btn = new Button { Text = text, Size = new Size(w, h), FlatStyle = FlatStyle.Flat, BackColor = ThemeColors.Accent, ForeColor = ThemeColors.AccentOnAccent, Font = new Font("Segoe UI", 9f, FontStyle.Bold), Cursor = Cursors.Hand };
         btn.FlatAppearance.BorderSize = 0;
-        btn.FlatAppearance.MouseOverBackColor = AccentHover;
+        btn.FlatAppearance.MouseOverBackColor = ThemeColors.AccentHover;
         return btn;
     }
 
     private static Button MakeSecondary(string text, int w, int h)
     {
-        var btn = new Button { Text = text, Size = new Size(w, h), FlatStyle = FlatStyle.Flat, BackColor = Color.White, ForeColor = TextBody, Font = new Font("Segoe UI", 9f), Cursor = Cursors.Hand };
-        btn.FlatAppearance.BorderColor = BorderCard;
+        var btn = new Button { Text = text, Size = new Size(w, h), FlatStyle = FlatStyle.Flat, BackColor = ThemeColors.BgCard, ForeColor = ThemeColors.TextBody, Font = new Font("Segoe UI", 9f), Cursor = Cursors.Hand };
+        btn.FlatAppearance.BorderColor = ThemeColors.BorderCard;
         btn.FlatAppearance.BorderSize = 1;
-        btn.FlatAppearance.MouseOverBackColor = BgPage;
+        btn.FlatAppearance.MouseOverBackColor = ThemeColors.BgPage;
         return btn;
     }
 
-    private static Label MakeSectionLabel(string text) => new() { Text = text, AutoSize = true, ForeColor = TextMuted, Font = new Font("Segoe UI", 7.5f, FontStyle.Bold), BackColor = Color.Transparent };
+    private static Label MakeSectionLabel(string text) => new() { Text = text, AutoSize = true, ForeColor = ThemeColors.TextMuted, Font = new Font("Segoe UI", 7.5f, FontStyle.Bold), BackColor = Color.Transparent };
 
     public SettingsForm(AppConfig config)
     {
@@ -116,7 +108,7 @@ public sealed class SettingsForm : Form
         MaximizeBox = false; MinimizeBox = false;
         StartPosition = FormStartPosition.CenterScreen;
         Font = new Font("Segoe UI", 9f);
-        BackColor = BgPage;
+        BackColor = ThemeColors.BgPage;
         MinimumSize = new Size(420, 380);
         DoubleBuffered = true;
 
@@ -134,18 +126,18 @@ public sealed class SettingsForm : Form
             Location = new Point(8, 8),
             Size = new Size(formW - 16, formH - 52),
             Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right | AnchorStyles.Bottom,
-            ActiveTabColor = Color.White,
-            ActiveTabForeColor = AccentPrimary,
+            ActiveTabColor = ThemeColors.BgCard,
+            ActiveTabForeColor = ThemeColors.Accent,
             ActiveTabFont = new Font("Segoe UI", 9f, FontStyle.Bold),
-            InactiveTabColor = BgPage,
+            InactiveTabColor = ThemeColors.BgPage,
             BorderStyle = BorderStyle.None,
             FocusOnTabClick = false,
             TabGap = 4
         };
 
         // ═══ TAB 1: Settings ═══
-        var settingsTab = new TabPageAdv("Settings") { BackColor = BgPage };
-        var settingsPanel = new Panel { Dock = DockStyle.Fill, AutoScroll = true, BackColor = BgPage };
+        var settingsTab = new TabPageAdv("Settings") { BackColor = ThemeColors.BgPage };
+        var settingsPanel = new Panel { Dock = DockStyle.Fill, AutoScroll = true, BackColor = ThemeColors.BgPage };
 
         const int innerPad = 14;
         int cardW = formW - 56;
@@ -174,19 +166,19 @@ public sealed class SettingsForm : Form
         var connectionCard = new SectionCard { Location = new Point(4, 64), Size = new Size(cardW, 210) };
         var connLabel = MakeSectionLabel("CONNECTION"); connLabel.Location = new Point(innerPad, 10);
 
-        var providerLabel = new Label { Text = "Provider:", Location = new Point(innerPad, 36), Size = new Size(90, 17), TextAlign = ContentAlignment.MiddleLeft, ForeColor = TextBody, BackColor = Color.Transparent };
+        var providerLabel = new Label { Text = "Provider:", Location = new Point(innerPad, 36), Size = new Size(90, 17), TextAlign = ContentAlignment.MiddleLeft, ForeColor = ThemeColors.TextBody, BackColor = Color.Transparent };
         _providerBox = new ComboBoxAdv { DropDownStyle = ComboBoxStyle.DropDownList, Location = new Point(110, 34), Size = new Size(fieldW, 23) };
         foreach (var (label, _, _, _) in Providers) _providerBox.Items.Add(label);
         _providerBox.SelectedIndexChanged += ProviderBox_Changed;
 
-        var endpointLabel = new Label { Text = "Endpoint:", Location = new Point(innerPad, 68), Size = new Size(90, 17), TextAlign = ContentAlignment.MiddleLeft, ForeColor = TextBody, BackColor = Color.Transparent };
+        var endpointLabel = new Label { Text = "Endpoint:", Location = new Point(innerPad, 68), Size = new Size(90, 17), TextAlign = ContentAlignment.MiddleLeft, ForeColor = ThemeColors.TextBody, BackColor = Color.Transparent };
         _endpointBox = new TextBox { Location = new Point(110, 66), Size = new Size(fieldW, 23) };
 
-        var apiKeyLabel = new Label { Text = "API Key:", Location = new Point(innerPad, 100), Size = new Size(90, 17), TextAlign = ContentAlignment.MiddleLeft, ForeColor = TextBody, BackColor = Color.Transparent };
+        var apiKeyLabel = new Label { Text = "API Key:", Location = new Point(innerPad, 100), Size = new Size(90, 17), TextAlign = ContentAlignment.MiddleLeft, ForeColor = ThemeColors.TextBody, BackColor = Color.Transparent };
         _apiKeyBox = new TextBox { Location = new Point(110, 98), Size = new Size(fieldW, 23), UseSystemPasswordChar = true };
-        var apiKeyHint = new Label { Text = "Leave blank if not required", Location = new Point(110, 122), AutoSize = true, ForeColor = TextMuted, Font = new Font("Segoe UI", 7.5f), BackColor = Color.Transparent };
+        var apiKeyHint = new Label { Text = "Leave blank if not required", Location = new Point(110, 122), AutoSize = true, ForeColor = ThemeColors.TextMuted, Font = new Font("Segoe UI", 7.5f), BackColor = Color.Transparent };
 
-        var modelLabel = new Label { Text = "Model:", Location = new Point(innerPad, 144), Size = new Size(90, 17), TextAlign = ContentAlignment.MiddleLeft, ForeColor = TextBody, BackColor = Color.Transparent };
+        var modelLabel = new Label { Text = "Model:", Location = new Point(innerPad, 144), Size = new Size(90, 17), TextAlign = ContentAlignment.MiddleLeft, ForeColor = ThemeColors.TextBody, BackColor = Color.Transparent };
         _modelBox = new TextBox { Location = new Point(110, 142), Size = new Size(fieldW, 23) };
 
         _testButton = MakeSecondary("&Test Connection", 120, 28);
@@ -214,24 +206,28 @@ public sealed class SettingsForm : Form
         langCard.Controls.AddRange([langLabel, _langListBox, _langAddButton, _langRemoveButton]);
 
         // Options card
-        var optionsCard = new SectionCard { Location = new Point(4, 388), Size = new Size(cardW, 72) };
+        var optionsCard = new SectionCard { Location = new Point(4, 388), Size = new Size(cardW, 100) };
         var optLabel = MakeSectionLabel("OPTIONS"); optLabel.Location = new Point(innerPad, 10);
-        _shiftRightClickBox = new CheckBoxAdv { Text = "Enable Shift+Right-Click to open style picker", Location = new Point(innerPad, 30), AutoSize = true, Checked = _config.ShiftRightClickEnabled, ForeColor = TextBody, BackColor = Color.Transparent, Font = new Font("Segoe UI", 9f) };
-        _startWithWindowsBox = new CheckBoxAdv { Text = "Start LLM-Rephraser with Windows", Location = new Point(innerPad, 50), AutoSize = true, Checked = AppConfig.ReadStartWithWindows(), ForeColor = TextBody, BackColor = Color.Transparent, Font = new Font("Segoe UI", 9f) };
-        optionsCard.Controls.AddRange([optLabel, _shiftRightClickBox, _startWithWindowsBox]);
+        var themeLabel = new Label { Text = "Theme:", Location = new Point(innerPad, 32), Size = new Size(50, 17), TextAlign = ContentAlignment.MiddleLeft, ForeColor = ThemeColors.TextBody, BackColor = Color.Transparent };
+        _themeBox = new ComboBoxAdv { DropDownStyle = ComboBoxStyle.DropDownList, Location = new Point(68, 30), Size = new Size(120, 23) };
+        _themeBox.Items.AddRange(new object[] { "System", "Light", "Dark" });
+        _themeBox.SelectedIndex = (int)_config.Theme;
+        _shiftRightClickBox = new CheckBoxAdv { Text = "Enable Shift+Right-Click to open style picker", Location = new Point(innerPad, 56), AutoSize = true, Checked = _config.ShiftRightClickEnabled, ForeColor = ThemeColors.TextBody, BackColor = Color.Transparent, Font = new Font("Segoe UI", 9f) };
+        _startWithWindowsBox = new CheckBoxAdv { Text = "Start LLM-Rephraser with Windows", Location = new Point(innerPad, 76), AutoSize = true, Checked = AppConfig.ReadStartWithWindows(), ForeColor = ThemeColors.TextBody, BackColor = Color.Transparent, Font = new Font("Segoe UI", 9f) };
+        optionsCard.Controls.AddRange([optLabel, themeLabel, _themeBox, _shiftRightClickBox, _startWithWindowsBox]);
 
         settingsPanel.Controls.AddRange([profileCard, connectionCard, langCard, optionsCard]);
         settingsTab.Controls.Add(settingsPanel);
 
         // ═══ TAB 2: OpenRouter ═══
-        var openRouterTab = new TabPageAdv("OpenRouter") { BackColor = BgPage };
+        var openRouterTab = new TabPageAdv("OpenRouter") { BackColor = ThemeColors.BgPage };
         var orCard = new SectionCard { Location = new Point(4, 4), Size = new Size(cardW, formH - 96), Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right | AnchorStyles.Bottom };
         var orSectionLabel = MakeSectionLabel("BROWSE FREE MODELS"); orSectionLabel.Location = new Point(innerPad, 10);
-        var orDescription = new Label { Text = "Browse free models from OpenRouter.ai and create a profile with one click.", Location = new Point(innerPad, 28), Size = new Size(cardW - innerPad * 2, 18), ForeColor = TextMuted, Font = new Font("Segoe UI", 8f), BackColor = Color.Transparent, Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right };
+        var orDescription = new Label { Text = "Browse free models from OpenRouter.ai and create a profile with one click.", Location = new Point(innerPad, 28), Size = new Size(cardW - innerPad * 2, 18), ForeColor = ThemeColors.TextMuted, Font = new Font("Segoe UI", 8f), BackColor = Color.Transparent, Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right };
 
         _fetchButton = MakeSecondary("Fetch Free Models", 140, 28); _fetchButton.Location = new Point(innerPad, 52); _fetchButton.Click += FetchModels_Click;
         _orStatusLabel = new Label { Text = "", Location = new Point(162, 58), Size = new Size(cardW - 162 - innerPad, 17), TextAlign = ContentAlignment.MiddleLeft, BackColor = Color.Transparent, Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right };
-        var searchLabel = new Label { Text = "Search:", Location = new Point(innerPad, 90), Size = new Size(50, 17), TextAlign = ContentAlignment.MiddleLeft, ForeColor = TextBody, BackColor = Color.Transparent };
+        var searchLabel = new Label { Text = "Search:", Location = new Point(innerPad, 90), Size = new Size(50, 17), TextAlign = ContentAlignment.MiddleLeft, ForeColor = ThemeColors.TextBody, BackColor = Color.Transparent };
         _orSearchBox = new TextBox { Location = new Point(68, 88), Size = new Size(200, 23) }; _orSearchBox.TextChanged += OrSearch_Changed;
 
         _modelListView = new ListView { Location = new Point(innerPad, 118), Size = new Size(cardW - innerPad * 2, 264), View = View.Details, FullRowSelect = true, GridLines = true, MultiSelect = false, HideSelection = false, BorderStyle = BorderStyle.FixedSingle, Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right | AnchorStyles.Bottom };
@@ -240,24 +236,24 @@ public sealed class SettingsForm : Form
         _createProfileButton = MakePrimary("Create Profile from Selected", 210, 30); _createProfileButton.Location = new Point(innerPad, 390); _createProfileButton.Enabled = false; _createProfileButton.Anchor = AnchorStyles.Bottom | AnchorStyles.Left; _createProfileButton.Click += CreateProfileFromModel_Click;
         _modelListView.SelectedIndexChanged += (_, _) => _createProfileButton.Enabled = _modelListView.SelectedItems.Count > 0;
 
-        var orKeyLink = new LinkLabel { Text = "Get your OpenRouter API key", Location = new Point(234, 396), AutoSize = true, LinkColor = AccentPrimary, ActiveLinkColor = AccentHover, BackColor = Color.Transparent, Anchor = AnchorStyles.Bottom | AnchorStyles.Left };
+        var orKeyLink = new LinkLabel { Text = "Get your OpenRouter API key", Location = new Point(234, 396), AutoSize = true, LinkColor = ThemeColors.Accent, ActiveLinkColor = ThemeColors.AccentHover, BackColor = Color.Transparent, Anchor = AnchorStyles.Bottom | AnchorStyles.Left };
         orKeyLink.LinkClicked += (_, _) => System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo { FileName = "https://openrouter.ai/workspaces/default/keys", UseShellExecute = true });
 
         orCard.Controls.AddRange([orSectionLabel, orDescription, _fetchButton, _orStatusLabel, searchLabel, _orSearchBox, _modelListView, _createProfileButton, orKeyLink]);
         openRouterTab.Controls.Add(orCard);
 
         // ═══ TAB 3: Google AI Studio ═══
-        var gaiTab = new TabPageAdv("Google AI Studio") { BackColor = BgPage };
+        var gaiTab = new TabPageAdv("Google AI Studio") { BackColor = ThemeColors.BgPage };
         var gaiCard = new SectionCard { Location = new Point(4, 4), Size = new Size(cardW, formH - 96), Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right | AnchorStyles.Bottom };
         var gaiSectionLabel = MakeSectionLabel("BROWSE GEMINI MODELS"); gaiSectionLabel.Location = new Point(innerPad, 10);
-        var gaiDescription = new Label { Text = "Browse Gemini models from Google AI Studio and create a profile with one click.", Location = new Point(innerPad, 28), Size = new Size(cardW - innerPad * 2, 18), ForeColor = TextMuted, Font = new Font("Segoe UI", 8f), BackColor = Color.Transparent, Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right };
+        var gaiDescription = new Label { Text = "Browse Gemini models from Google AI Studio and create a profile with one click.", Location = new Point(innerPad, 28), Size = new Size(cardW - innerPad * 2, 18), ForeColor = ThemeColors.TextMuted, Font = new Font("Segoe UI", 8f), BackColor = Color.Transparent, Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right };
 
-        var gaiKeyLabel = new Label { Text = "API Key:", Location = new Point(innerPad, 56), Size = new Size(55, 17), TextAlign = ContentAlignment.MiddleLeft, ForeColor = TextBody, BackColor = Color.Transparent };
+        var gaiKeyLabel = new Label { Text = "API Key:", Location = new Point(innerPad, 56), Size = new Size(55, 17), TextAlign = ContentAlignment.MiddleLeft, ForeColor = ThemeColors.TextBody, BackColor = Color.Transparent };
         _gaiApiKeyBox = new TextBox { Location = new Point(73, 54), Size = new Size(cardW - 73 - 100 - innerPad - 8, 23), UseSystemPasswordChar = true };
         _gaiFetchButton = MakeSecondary("Fetch Models", 100, 27); _gaiFetchButton.Location = new Point(cardW - innerPad - 100, 53); _gaiFetchButton.Click += GaiFetchModels_Click;
         _gaiStatusLabel = new Label { Text = "", Location = new Point(innerPad, 84), Size = new Size(cardW - innerPad * 2, 17), TextAlign = ContentAlignment.MiddleLeft, BackColor = Color.Transparent, Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right };
 
-        var gaiSearchLabel = new Label { Text = "Search:", Location = new Point(innerPad, 108), Size = new Size(50, 17), TextAlign = ContentAlignment.MiddleLeft, ForeColor = TextBody, BackColor = Color.Transparent };
+        var gaiSearchLabel = new Label { Text = "Search:", Location = new Point(innerPad, 108), Size = new Size(50, 17), TextAlign = ContentAlignment.MiddleLeft, ForeColor = ThemeColors.TextBody, BackColor = Color.Transparent };
         _gaiSearchBox = new TextBox { Location = new Point(68, 106), Size = new Size(200, 23) }; _gaiSearchBox.TextChanged += GaiSearch_Changed;
 
         _gaiModelListView = new ListView { Location = new Point(innerPad, 136), Size = new Size(cardW - innerPad * 2, 244), View = View.Details, FullRowSelect = true, GridLines = true, MultiSelect = false, HideSelection = false, BorderStyle = BorderStyle.FixedSingle, Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right | AnchorStyles.Bottom };
@@ -266,22 +262,22 @@ public sealed class SettingsForm : Form
         _gaiCreateProfileButton = MakePrimary("Create Profile from Selected", 210, 30); _gaiCreateProfileButton.Location = new Point(innerPad, 388); _gaiCreateProfileButton.Enabled = false; _gaiCreateProfileButton.Anchor = AnchorStyles.Bottom | AnchorStyles.Left; _gaiCreateProfileButton.Click += GaiCreateProfile_Click;
         _gaiModelListView.SelectedIndexChanged += (_, _) => _gaiCreateProfileButton.Enabled = _gaiModelListView.SelectedItems.Count > 0;
 
-        var gaiKeyLink = new LinkLabel { Text = "Get your Google AI Studio API key", Location = new Point(234, 394), AutoSize = true, LinkColor = AccentPrimary, ActiveLinkColor = AccentHover, BackColor = Color.Transparent, Anchor = AnchorStyles.Bottom | AnchorStyles.Left };
+        var gaiKeyLink = new LinkLabel { Text = "Get your Google AI Studio API key", Location = new Point(234, 394), AutoSize = true, LinkColor = ThemeColors.Accent, ActiveLinkColor = ThemeColors.AccentHover, BackColor = Color.Transparent, Anchor = AnchorStyles.Bottom | AnchorStyles.Left };
         gaiKeyLink.LinkClicked += (_, _) => System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo { FileName = "https://aistudio.google.com/apikey", UseShellExecute = true });
 
         gaiCard.Controls.AddRange([gaiSectionLabel, gaiDescription, gaiKeyLabel, _gaiApiKeyBox, _gaiFetchButton, _gaiStatusLabel, gaiSearchLabel, _gaiSearchBox, _gaiModelListView, _gaiCreateProfileButton, gaiKeyLink]);
         gaiTab.Controls.Add(gaiCard);
 
         // ═══ TAB 4: NVIDIA ═══
-        var nvTab = new TabPageAdv("NVIDIA") { BackColor = BgPage };
+        var nvTab = new TabPageAdv("NVIDIA") { BackColor = ThemeColors.BgPage };
         var nvCard = new SectionCard { Location = new Point(4, 4), Size = new Size(cardW, formH - 96), Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right | AnchorStyles.Bottom };
         var nvSectionLabel = MakeSectionLabel("BROWSE NVIDIA MODELS"); nvSectionLabel.Location = new Point(innerPad, 10);
-        var nvDescription = new Label { Text = "Browse models from NVIDIA Build and create a profile with one click.", Location = new Point(innerPad, 28), Size = new Size(cardW - innerPad * 2, 18), ForeColor = TextMuted, Font = new Font("Segoe UI", 8f), BackColor = Color.Transparent, Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right };
+        var nvDescription = new Label { Text = "Browse models from NVIDIA Build and create a profile with one click.", Location = new Point(innerPad, 28), Size = new Size(cardW - innerPad * 2, 18), ForeColor = ThemeColors.TextMuted, Font = new Font("Segoe UI", 8f), BackColor = Color.Transparent, Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right };
 
         _nvFetchButton = MakeSecondary("Fetch Models", 120, 28); _nvFetchButton.Location = new Point(innerPad, 52); _nvFetchButton.Click += NvFetchModels_Click;
         _nvStatusLabel = new Label { Text = "", Location = new Point(142, 58), Size = new Size(cardW - 142 - innerPad, 17), TextAlign = ContentAlignment.MiddleLeft, BackColor = Color.Transparent, Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right };
 
-        var nvSearchLabel = new Label { Text = "Search:", Location = new Point(innerPad, 90), Size = new Size(50, 17), TextAlign = ContentAlignment.MiddleLeft, ForeColor = TextBody, BackColor = Color.Transparent };
+        var nvSearchLabel = new Label { Text = "Search:", Location = new Point(innerPad, 90), Size = new Size(50, 17), TextAlign = ContentAlignment.MiddleLeft, ForeColor = ThemeColors.TextBody, BackColor = Color.Transparent };
         _nvSearchBox = new TextBox { Location = new Point(68, 88), Size = new Size(200, 23) }; _nvSearchBox.TextChanged += NvSearch_Changed;
 
         _nvModelListView = new ListView { Location = new Point(innerPad, 118), Size = new Size(cardW - innerPad * 2, 264), View = View.Details, FullRowSelect = true, GridLines = true, MultiSelect = false, HideSelection = false, BorderStyle = BorderStyle.FixedSingle, Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right | AnchorStyles.Bottom };
@@ -290,7 +286,7 @@ public sealed class SettingsForm : Form
         _nvCreateProfileButton = MakePrimary("Create Profile from Selected", 210, 30); _nvCreateProfileButton.Location = new Point(innerPad, 390); _nvCreateProfileButton.Enabled = false; _nvCreateProfileButton.Anchor = AnchorStyles.Bottom | AnchorStyles.Left; _nvCreateProfileButton.Click += NvCreateProfile_Click;
         _nvModelListView.SelectedIndexChanged += (_, _) => _nvCreateProfileButton.Enabled = _nvModelListView.SelectedItems.Count > 0;
 
-        var nvKeyLink = new LinkLabel { Text = "Get your NVIDIA API key", Location = new Point(234, 396), AutoSize = true, LinkColor = AccentPrimary, ActiveLinkColor = AccentHover, BackColor = Color.Transparent, Anchor = AnchorStyles.Bottom | AnchorStyles.Left };
+        var nvKeyLink = new LinkLabel { Text = "Get your NVIDIA API key", Location = new Point(234, 396), AutoSize = true, LinkColor = ThemeColors.Accent, ActiveLinkColor = ThemeColors.AccentHover, BackColor = Color.Transparent, Anchor = AnchorStyles.Bottom | AnchorStyles.Left };
         nvKeyLink.LinkClicked += (_, _) => System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo { FileName = "https://build.nvidia.com/models", UseShellExecute = true });
 
         nvCard.Controls.AddRange([nvSectionLabel, nvDescription, _nvFetchButton, _nvStatusLabel, nvSearchLabel, _nvSearchBox, _nvModelListView, _nvCreateProfileButton, nvKeyLink]);
@@ -320,9 +316,9 @@ public sealed class SettingsForm : Form
             { if (!model.TryGetProperty("pricing", out var pricing)) continue; if ((pricing.TryGetProperty("prompt", out var pp) ? pp.GetString() : null) != "0" || (pricing.TryGetProperty("completion", out var cp) ? cp.GetString() : null) != "0") continue;
               _allModels.Add(new OpenRouterModel { Id = model.GetProperty("id").GetString() ?? "", Name = model.TryGetProperty("name", out var n) ? n.GetString() ?? "" : "", ContextLength = model.TryGetProperty("context_length", out var cl) ? cl.GetInt32() : 0 }); }
             _allModels = _allModels.OrderBy(m => m.Name).ToList(); _filteredModels = _allModels; PopulateModelList();
-            _orStatusLabel.ForeColor = Color.FromArgb(0, 128, 0); _orStatusLabel.Text = $"Found {_allModels.Count} free models.";
+            _orStatusLabel.ForeColor = ThemeColors.Success; _orStatusLabel.Text = $"Found {_allModels.Count} free models.";
         }
-        catch (Exception ex) { _orStatusLabel.ForeColor = Color.Red; _orStatusLabel.Text = ex.Message.Length > 60 ? ex.Message[..57] + "..." : ex.Message; }
+        catch (Exception ex) { _orStatusLabel.ForeColor = ThemeColors.Error; _orStatusLabel.Text = ex.Message.Length > 60 ? ex.Message[..57] + "..." : ex.Message; }
         finally { _fetchButton.Enabled = true; _fetchButton.Text = "Fetch Free Models"; }
     }
     private void OrSearch_Changed(object? sender, EventArgs e) { var q = _orSearchBox.Text.Trim(); _filteredModels = string.IsNullOrEmpty(q) ? _allModels : _allModels.Where(m => m.Name.Contains(q, StringComparison.OrdinalIgnoreCase) || m.Id.Contains(q, StringComparison.OrdinalIgnoreCase)).ToList(); PopulateModelList(); }
@@ -333,7 +329,7 @@ public sealed class SettingsForm : Form
     private sealed class GeminiModel { public string Id { get; set; } = ""; public string DisplayName { get; set; } = ""; public int InputTokenLimit { get; set; } }
     private async void GaiFetchModels_Click(object? sender, EventArgs e)
     {
-        if (string.IsNullOrWhiteSpace(_gaiApiKeyBox.Text)) { _gaiStatusLabel.ForeColor = Color.Red; _gaiStatusLabel.Text = "API key is required to fetch models."; return; }
+        if (string.IsNullOrWhiteSpace(_gaiApiKeyBox.Text)) { _gaiStatusLabel.ForeColor = ThemeColors.Error; _gaiStatusLabel.Text = "API key is required to fetch models."; return; }
         _gaiFetchButton.Enabled = false; _gaiFetchButton.Text = "Fetching..."; _gaiStatusLabel.ForeColor = SystemColors.GrayText; _gaiStatusLabel.Text = "Downloading model list..."; _gaiModelListView.Items.Clear(); _allGaiModels.Clear();
         try
         {
@@ -343,9 +339,9 @@ public sealed class SettingsForm : Form
               var name = model.GetProperty("name").GetString() ?? ""; var modelId = name.StartsWith("models/") ? name["models/".Length..] : name;
               _allGaiModels.Add(new GeminiModel { Id = modelId, DisplayName = model.TryGetProperty("displayName", out var dn) ? dn.GetString() ?? name : name, InputTokenLimit = model.TryGetProperty("inputTokenLimit", out var il) ? il.GetInt32() : 0 }); }
             _allGaiModels = _allGaiModels.OrderBy(m => m.DisplayName).ToList(); _filteredGaiModels = _allGaiModels; PopulateGaiModelList();
-            _gaiStatusLabel.ForeColor = Color.FromArgb(0, 128, 0); _gaiStatusLabel.Text = $"Found {_allGaiModels.Count} models.";
+            _gaiStatusLabel.ForeColor = ThemeColors.Success; _gaiStatusLabel.Text = $"Found {_allGaiModels.Count} models.";
         }
-        catch (Exception ex) { _gaiStatusLabel.ForeColor = Color.Red; _gaiStatusLabel.Text = ex.Message.Length > 70 ? ex.Message[..67] + "..." : ex.Message; }
+        catch (Exception ex) { _gaiStatusLabel.ForeColor = ThemeColors.Error; _gaiStatusLabel.Text = ex.Message.Length > 70 ? ex.Message[..67] + "..." : ex.Message; }
         finally { _gaiFetchButton.Enabled = true; _gaiFetchButton.Text = "Fetch Models"; }
     }
     private void GaiSearch_Changed(object? sender, EventArgs e) { var q = _gaiSearchBox.Text.Trim(); _filteredGaiModels = string.IsNullOrEmpty(q) ? _allGaiModels : _allGaiModels.Where(m => m.DisplayName.Contains(q, StringComparison.OrdinalIgnoreCase) || m.Id.Contains(q, StringComparison.OrdinalIgnoreCase)).ToList(); PopulateGaiModelList(); }
@@ -362,9 +358,9 @@ public sealed class SettingsForm : Form
             using var http = new HttpClient { Timeout = TimeSpan.FromSeconds(30) }; var json = await http.GetStringAsync("https://integrate.api.nvidia.com/v1/models"); using var doc = JsonDocument.Parse(json);
             foreach (var model in doc.RootElement.GetProperty("data").EnumerateArray()) _allNvModels.Add(new NvidiaModel { Id = model.GetProperty("id").GetString() ?? "", Owner = model.TryGetProperty("owned_by", out var ob) ? ob.GetString() ?? "" : "" });
             _allNvModels = _allNvModels.OrderBy(m => m.Id).ToList(); _filteredNvModels = _allNvModels; PopulateNvModelList();
-            _nvStatusLabel.ForeColor = Color.FromArgb(0, 128, 0); _nvStatusLabel.Text = $"Found {_allNvModels.Count} models.";
+            _nvStatusLabel.ForeColor = ThemeColors.Success; _nvStatusLabel.Text = $"Found {_allNvModels.Count} models.";
         }
-        catch (Exception ex) { _nvStatusLabel.ForeColor = Color.Red; _nvStatusLabel.Text = ex.Message.Length > 70 ? ex.Message[..67] + "..." : ex.Message; }
+        catch (Exception ex) { _nvStatusLabel.ForeColor = ThemeColors.Error; _nvStatusLabel.Text = ex.Message.Length > 70 ? ex.Message[..67] + "..." : ex.Message; }
         finally { _nvFetchButton.Enabled = true; _nvFetchButton.Text = "Fetch Models"; }
     }
     private void NvSearch_Changed(object? sender, EventArgs e) { var q = _nvSearchBox.Text.Trim(); _filteredNvModels = string.IsNullOrEmpty(q) ? _allNvModels : _allNvModels.Where(m => m.Id.Contains(q, StringComparison.OrdinalIgnoreCase) || m.Owner.Contains(q, StringComparison.OrdinalIgnoreCase)).ToList(); PopulateNvModelList(); }
@@ -382,30 +378,30 @@ public sealed class SettingsForm : Form
     private void ProviderBox_Changed(object? sender, EventArgs e) { if (_suppressProfileSwitch) return; var idx = _providerBox.SelectedIndex; if (idx < 0 || idx >= Providers.Length) return; var (_, _, defaultEndpoint, defaultModel) = Providers[idx]; if (Providers.Any(p => _endpointBox.Text.Trim() == p.DefaultEndpoint) || string.IsNullOrWhiteSpace(_endpointBox.Text)) _endpointBox.Text = defaultEndpoint; if (Providers.Any(p => _modelBox.Text.Trim() == p.DefaultModel) || string.IsNullOrWhiteSpace(_modelBox.Text)) _modelBox.Text = defaultModel; }
     private async void TestButton_Click(object? sender, EventArgs e)
     {
-        if (string.IsNullOrWhiteSpace(_endpointBox.Text) || string.IsNullOrWhiteSpace(_modelBox.Text)) { _testResultLabel.ForeColor = Color.Red; _testResultLabel.Text = "Endpoint and Model are required."; return; }
+        if (string.IsNullOrWhiteSpace(_endpointBox.Text) || string.IsNullOrWhiteSpace(_modelBox.Text)) { _testResultLabel.ForeColor = ThemeColors.Error; _testResultLabel.Text = "Endpoint and Model are required."; return; }
         _testButton.Enabled = false; _testButton.Text = "Testing..."; _testResultLabel.ForeColor = SystemColors.GrayText; _testResultLabel.Text = "Sending test request...";
         var testProfile = new ProfileConfig { Provider = Providers[_providerBox.SelectedIndex].Value, ApiEndpoint = _endpointBox.Text.Trim(), ApiKey = _apiKeyBox.Text.Trim(), ModelName = _modelBox.Text.Trim() };
         using var client = new LlmClient(); using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
-        try { await client.SendAsync(testProfile, "You are a test assistant. Reply with exactly: OK", "Say OK", cts.Token); _testResultLabel.ForeColor = Color.FromArgb(0, 128, 0); _testResultLabel.Text = "Connection successful."; }
-        catch (OperationCanceledException) { _testResultLabel.ForeColor = Color.Red; _testResultLabel.Text = "Timed out (30 s)."; }
-        catch (Exception ex) { _testResultLabel.ForeColor = Color.Red; _testResultLabel.Text = ex.Message.Length > 70 ? ex.Message[..67] + "..." : ex.Message; }
+        try { await client.SendAsync(testProfile, "You are a test assistant. Reply with exactly: OK", "Say OK", cts.Token); _testResultLabel.ForeColor = ThemeColors.Success; _testResultLabel.Text = "Connection successful."; }
+        catch (OperationCanceledException) { _testResultLabel.ForeColor = ThemeColors.Error; _testResultLabel.Text = "Timed out (30 s)."; }
+        catch (Exception ex) { _testResultLabel.ForeColor = ThemeColors.Error; _testResultLabel.Text = ex.Message.Length > 70 ? ex.Message[..67] + "..." : ex.Message; }
         finally { _testButton.Enabled = true; _testButton.Text = "&Test Connection"; }
     }
     private void SaveButton_Click(object? sender, EventArgs e)
     {
         if (string.IsNullOrWhiteSpace(_endpointBox.Text)) { MessageBox.Show(this, "API Endpoint URL is required.", "Validation", MessageBoxButtons.OK, MessageBoxIcon.Warning); _endpointBox.Focus(); return; }
         if (string.IsNullOrWhiteSpace(_modelBox.Text)) { MessageBox.Show(this, "Model Name is required.", "Validation", MessageBoxButtons.OK, MessageBoxIcon.Warning); _modelBox.Focus(); return; }
-        var profileName = (string)_profileBox.SelectedItem!; SaveFieldsToProfile(profileName); _config.ActiveProfile = profileName; _config.ShiftRightClickEnabled = _shiftRightClickBox.Checked; _config.StartWithWindows = _startWithWindowsBox.Checked; _config.TranslationLanguages = _langListBox.Items.Cast<string>().ToList(); _config.Save(); DialogResult = DialogResult.OK; Close();
+        var profileName = (string)_profileBox.SelectedItem!; SaveFieldsToProfile(profileName); _config.ActiveProfile = profileName; _config.ShiftRightClickEnabled = _shiftRightClickBox.Checked; _config.StartWithWindows = _startWithWindowsBox.Checked; _config.Theme = (ThemeMode)_themeBox.SelectedIndex; _config.TranslationLanguages = _langListBox.Items.Cast<string>().ToList(); _config.Save(); ThemeColors.SetMode(_config.Theme); DialogResult = DialogResult.OK; Close();
     }
     private void LangAdd_Click(object? sender, EventArgs e) { var name = PromptForName("Add Language", "Language name:"); if (name == null) return; if (_langListBox.Items.Cast<string>().Any(l => l.Equals(name, StringComparison.OrdinalIgnoreCase))) { MessageBox.Show(this, $"\"{name}\" is already in the list.", "LLM-Rephraser", MessageBoxButtons.OK, MessageBoxIcon.Information); return; } _langListBox.Items.Add(name); }
     private void LangRemove_Click(object? sender, EventArgs e) { if (_langListBox.SelectedIndex >= 0) _langListBox.Items.RemoveAt(_langListBox.SelectedIndex); }
 
     private string? PromptForName(string title, string labelText, string defaultValue = "")
     {
-        using var dlg = new Form { Text = title, ClientSize = new Size(340, 115), FormBorderStyle = FormBorderStyle.FixedDialog, MaximizeBox = false, MinimizeBox = false, StartPosition = FormStartPosition.CenterParent, BackColor = BgPage, Font = Font };
+        using var dlg = new Form { Text = title, ClientSize = new Size(340, 115), FormBorderStyle = FormBorderStyle.FixedDialog, MaximizeBox = false, MinimizeBox = false, StartPosition = FormStartPosition.CenterParent, BackColor = ThemeColors.BgPage, Font = Font };
         dlg.AutoScaleDimensions = new SizeF(7F, 15F); dlg.AutoScaleMode = AutoScaleMode.Font;
         var card = new SectionCard { Location = new Point(12, 8), Size = new Size(316, 60) };
-        var lbl = new Label { Text = labelText, Location = new Point(12, 8), AutoSize = true, ForeColor = TextBody, BackColor = Color.Transparent };
+        var lbl = new Label { Text = labelText, Location = new Point(12, 8), AutoSize = true, ForeColor = ThemeColors.TextBody, BackColor = Color.Transparent };
         var txt = new TextBox { Text = defaultValue, Location = new Point(12, 30), Size = new Size(292, 23) }; txt.SelectAll();
         card.Controls.AddRange([lbl, txt]);
         var ok = MakePrimary("OK", 75, 27); ok.Location = new Point(172, 78); ok.DialogResult = DialogResult.OK;

@@ -57,6 +57,10 @@ public sealed class TrayApplicationContext : ApplicationContext
 
     public TrayApplicationContext()
     {
+        // Apply saved theme
+        var savedConfig = AppConfig.Load();
+        ThemeColors.SetMode(savedConfig.Theme);
+
         _llmClient = new LlmClient();
 
         // Invisible helper form to own the context menu and ensure it gets foreground focus
@@ -209,8 +213,6 @@ public sealed class TrayApplicationContext : ApplicationContext
         var version = System.Reflection.Assembly.GetExecutingAssembly().GetName().Version;
         var ver = version != null ? $"{version.Major}.{version.Minor}.{version.Build}" : "1.0.0";
 
-        var accentColor = Color.FromArgb(99, 102, 241);
-
         using var dlg = new Form();
         dlg.Text = "About LLM-Rephraser";
         dlg.ClientSize = new Size(400, 280);
@@ -218,12 +220,13 @@ public sealed class TrayApplicationContext : ApplicationContext
         dlg.MaximizeBox = false;
         dlg.MinimizeBox = false;
         dlg.StartPosition = FormStartPosition.CenterScreen;
-        dlg.BackColor = Color.FromArgb(248, 250, 252);
+        dlg.BackColor = ThemeColors.BgPage;
 
         var card = new Panel
         {
             Location = new Point(16, 16),
             Size = new Size(368, 150),
+            BackColor = ThemeColors.BgCard,
             BorderStyle = BorderStyle.None
         };
         card.Paint += (s, e) =>
@@ -231,7 +234,7 @@ public sealed class TrayApplicationContext : ApplicationContext
             var r = card.ClientRectangle;
             r.Width -= 1;
             r.Height -= 1;
-            using var pen = new Pen(Color.FromArgb(220, 220, 220));
+            using var pen = new Pen(ThemeColors.BorderCard);
             e.Graphics.DrawRectangle(pen, r);
         };
 
@@ -240,7 +243,9 @@ public sealed class TrayApplicationContext : ApplicationContext
             Text = "LLM-Rephraser",
             Location = new Point(16, 12),
             AutoSize = true,
-            Font = new Font("Segoe UI", 16f, FontStyle.Bold)
+            ForeColor = ThemeColors.TextBody,
+            Font = new Font("Segoe UI", 16f, FontStyle.Bold),
+            BackColor = Color.Transparent
         };
 
         var versionLabel = new Label
@@ -249,7 +254,8 @@ public sealed class TrayApplicationContext : ApplicationContext
             Location = new Point(16, 48),
             AutoSize = true,
             Font = new Font("Segoe UI", 11f),
-            ForeColor = accentColor
+            ForeColor = ThemeColors.Accent,
+            BackColor = Color.Transparent
         };
 
         var desc = new Label
@@ -257,7 +263,9 @@ public sealed class TrayApplicationContext : ApplicationContext
             Text = "A Windows system tray tool for rephrasing,\ntranslating, and fixing text in any application\nusing LLM APIs.",
             Location = new Point(16, 72),
             Size = new Size(340, 50),
-            Font = new Font("Segoe UI", 9f)
+            Font = new Font("Segoe UI", 9f),
+            ForeColor = ThemeColors.TextBody,
+            BackColor = Color.Transparent
         };
 
         var link = new LinkLabel
@@ -265,7 +273,8 @@ public sealed class TrayApplicationContext : ApplicationContext
             Text = "github.com/davidturchak/LLM-rephraser",
             Location = new Point(16, 124),
             AutoSize = true,
-            LinkColor = accentColor
+            LinkColor = ThemeColors.Accent,
+            BackColor = Color.Transparent
         };
         link.LinkClicked += (_, _) =>
         {
@@ -284,8 +293,8 @@ public sealed class TrayApplicationContext : ApplicationContext
             Size = new Size(80, 36),
             Location = new Point(304, 236),
             FlatStyle = FlatStyle.Flat,
-            BackColor = accentColor,
-            ForeColor = Color.White,
+            BackColor = ThemeColors.Accent,
+            ForeColor = ThemeColors.AccentOnAccent,
             Font = new Font("Segoe UI", 9f, FontStyle.Bold),
             DialogResult = DialogResult.OK
         };

@@ -28,6 +28,7 @@ public sealed class AppConfig
     public bool ContextMenuEnabled { get; set; } = false;
     public bool FloatingToolbarEnabled { get; set; } = true;
     public bool StartWithWindows { get; set; } = false;
+    public ThemeMode Theme { get; set; } = ThemeMode.System;
     public List<string> TranslationLanguages { get; set; } = ["English", "Hebrew", "Arabic", "Russian"];
     public Dictionary<string, ProfileConfig> Profiles { get; set; } = new()
     {

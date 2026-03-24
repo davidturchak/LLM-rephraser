@@ -13,18 +13,6 @@ public sealed class ResultForm : Form
     public string SuggestedText => _suggestedBox.Text;
     public bool Accepted { get; private set; }
 
-    // ── Palette ───────────────────────────────────────────────────────────
-    private static readonly Color BgPage        = Color.FromArgb(248, 250, 252);
-    private static readonly Color BgCard        = Color.White;
-    private static readonly Color BorderCard    = Color.FromArgb(226, 232, 240);
-    private static readonly Color AccentOrig    = Color.FromArgb(148, 163, 184);
-    private static readonly Color AccentSugg    = Color.FromArgb(99,  102, 241);
-    private static readonly Color TextBody      = Color.FromArgb(51,  65,  85);
-    private static readonly Color TextMuted     = Color.FromArgb(148, 163, 184);
-    private static readonly Color TextOrigBody  = Color.FromArgb(100, 116, 139);
-    private static readonly Color PrimaryBtn    = Color.FromArgb(99,  102, 241);
-    private static readonly Color PrimaryHover  = Color.FromArgb(79,  70,  229);
-
     // ── RTL detection ────────────────────────────────────────────────────
     private static bool IsRtl(string text) =>
         text.Any(c => c is (>= '\u0590' and <= '\u05FF')
@@ -53,7 +41,7 @@ public sealed class ResultForm : Form
         public CardPanel(Color accent)
         {
             _accent = accent;
-            BackColor = BgCard;
+            BackColor = ThemeColors.BgCard;
             DoubleBuffered = true;
             SetStyle(ControlStyles.ResizeRedraw, true);
         }
@@ -63,7 +51,7 @@ public sealed class ResultForm : Form
             var g = e.Graphics;
             g.SmoothingMode = SmoothingMode.AntiAlias;
             var rect = new Rectangle(0, 0, Width - 1, Height - 1);
-            using var borderPen = new Pen(BorderCard, 1f);
+            using var borderPen = new Pen(ThemeColors.BorderCard, 1f);
             g.DrawRectangle(borderPen, rect);
             using var accentBrush = new SolidBrush(_accent);
             g.FillRectangle(accentBrush, 0, 0, AccentW, Height);
@@ -80,7 +68,7 @@ public sealed class ResultForm : Form
         MaximizeBox = false;
         MinimizeBox = false;
         StartPosition = FormStartPosition.CenterScreen;
-        BackColor = BgPage;
+        BackColor = ThemeColors.BgPage;
         DoubleBuffered = true;
 
         // Convert screen pixels to design units for DPI awareness
@@ -119,7 +107,7 @@ public sealed class ResultForm : Form
         int y = pad;
 
         // ── Original card ──
-        var origCard = new CardPanel(AccentOrig)
+        var origCard = new CardPanel(ThemeColors.AccentMuted)
         {
             Location = new Point(pad, y),
             Size = new Size(innerW, origCardH)
@@ -130,7 +118,7 @@ public sealed class ResultForm : Form
             Text = "ORIGINAL",
             Location = new Point(cardPadL, cardPadV),
             AutoSize = true,
-            ForeColor = TextMuted,
+            ForeColor = ThemeColors.TextMuted,
             Font = labelFont,
             BackColor = Color.Transparent
         };
@@ -144,8 +132,8 @@ public sealed class ResultForm : Form
             ReadOnly = true,
             ScrollBars = origLines >= maxLines ? ScrollBars.Vertical : ScrollBars.None,
             BorderStyle = BorderStyle.None,
-            BackColor = Color.White,
-            ForeColor = TextOrigBody,
+            BackColor = ThemeColors.BgCardAlt,
+            ForeColor = ThemeColors.TextOrigBody,
             TabStop = false,
             RightToLeft = origRtl ? RightToLeft.Yes : RightToLeft.No,
             Font = textFont
@@ -155,7 +143,7 @@ public sealed class ResultForm : Form
         y += origCardH + 12;
 
         // ── Suggestion card ──
-        var suggCard = new CardPanel(AccentSugg)
+        var suggCard = new CardPanel(ThemeColors.Accent)
         {
             Location = new Point(pad, y),
             Size = new Size(innerW, suggCardH)
@@ -166,7 +154,7 @@ public sealed class ResultForm : Form
             Text = "SUGGESTION",
             Location = new Point(cardPadL, cardPadV),
             AutoSize = true,
-            ForeColor = AccentSugg,
+            ForeColor = ThemeColors.Accent,
             Font = labelFont,
             BackColor = Color.Transparent
         };
@@ -176,7 +164,7 @@ public sealed class ResultForm : Form
             Text = "you can edit before accepting",
             Location = new Point(cardPadL + 90, cardPadV + 1),
             AutoSize = true,
-            ForeColor = TextMuted,
+            ForeColor = ThemeColors.TextMuted,
             Font = new Font("Segoe UI", 7.5f, FontStyle.Regular),
             BackColor = Color.Transparent
         };
@@ -189,8 +177,8 @@ public sealed class ResultForm : Form
             Multiline = true,
             ScrollBars = suggLines >= maxLines ? ScrollBars.Vertical : ScrollBars.None,
             BorderStyle = BorderStyle.None,
-            BackColor = Color.White,
-            ForeColor = TextBody,
+            BackColor = ThemeColors.BgCardAlt,
+            ForeColor = ThemeColors.TextBody,
             RightToLeft = suggRtl ? RightToLeft.Yes : RightToLeft.No,
             Font = textFont
         };
@@ -204,12 +192,12 @@ public sealed class ResultForm : Form
             Text = "Cancel",
             Size = new Size(88, 32),
             FlatStyle = FlatStyle.Flat,
-            BackColor = Color.White,
-            ForeColor = TextBody,
+            BackColor = ThemeColors.BgCard,
+            ForeColor = ThemeColors.TextBody,
             Font = new Font("Segoe UI", 9.5f),
             Cursor = Cursors.Hand
         };
-        cancelButton.FlatAppearance.BorderColor = BorderCard;
+        cancelButton.FlatAppearance.BorderColor = ThemeColors.BorderCard;
         cancelButton.FlatAppearance.BorderSize = 1;
         cancelButton.Click += (_, _) => Close();
 
@@ -218,13 +206,13 @@ public sealed class ResultForm : Form
             Text = "Accept && Replace",
             Size = new Size(138, 32),
             FlatStyle = FlatStyle.Flat,
-            BackColor = PrimaryBtn,
-            ForeColor = Color.White,
+            BackColor = ThemeColors.Accent,
+            ForeColor = ThemeColors.AccentOnAccent,
             Font = new Font("Segoe UI", 9.5f, FontStyle.Bold),
             Cursor = Cursors.Hand
         };
         acceptButton.FlatAppearance.BorderSize = 0;
-        acceptButton.FlatAppearance.MouseOverBackColor = PrimaryHover;
+        acceptButton.FlatAppearance.MouseOverBackColor = ThemeColors.AccentHover;
         acceptButton.Click += (_, _) => { Accepted = true; Close(); };
 
         cancelButton.Location  = new Point(formW - pad - cancelButton.Width, y);
