@@ -273,10 +273,11 @@ public sealed class SettingsForm : Form
         _modelListView = new ListView { Location = new Point(innerPad, 118), Size = new Size(cardW - innerPad * 2, 264), View = View.Details, FullRowSelect = true, GridLines = true, MultiSelect = false, HideSelection = false, BorderStyle = BorderStyle.FixedSingle, Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right | AnchorStyles.Bottom };
         _modelListView.Columns.Add("Model Name", 210); _modelListView.Columns.Add("ID", 160); _modelListView.Columns.Add("Context", 80, HorizontalAlignment.Right);
 
-        _createProfileButton = MakePrimary("Create Profile from Selected", 210, 30); _createProfileButton.Location = new Point(innerPad, 390); _createProfileButton.Enabled = false; _createProfileButton.Anchor = AnchorStyles.Bottom | AnchorStyles.Left; _createProfileButton.Click += CreateProfileFromModel_Click;
+        int orCardH = formH - 96;
+        _createProfileButton = MakePrimary("Create Profile from Selected", 210, 30); _createProfileButton.Location = new Point(innerPad, orCardH - 44); _createProfileButton.Enabled = false; _createProfileButton.Anchor = AnchorStyles.Bottom | AnchorStyles.Left; _createProfileButton.Click += CreateProfileFromModel_Click;
         _modelListView.SelectedIndexChanged += (_, _) => _createProfileButton.Enabled = _modelListView.SelectedItems.Count > 0;
 
-        var orKeyLink = new LinkLabel { Text = "Get your OpenRouter API key", Location = new Point(234, 396), AutoSize = true, LinkColor = ThemeColors.Accent, ActiveLinkColor = ThemeColors.AccentHover, BackColor = Color.Transparent, Anchor = AnchorStyles.Bottom | AnchorStyles.Left };
+        var orKeyLink = new LinkLabel { Text = "Get your OpenRouter API key", Location = new Point(234, orCardH - 38), AutoSize = true, LinkColor = ThemeColors.Accent, ActiveLinkColor = ThemeColors.AccentHover, BackColor = Color.Transparent, Anchor = AnchorStyles.Bottom | AnchorStyles.Left };
         orKeyLink.LinkClicked += (_, _) => System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo { FileName = "https://openrouter.ai/workspaces/default/keys", UseShellExecute = true });
 
         orCard.Controls.AddRange([orSectionLabel, orDescription, _fetchButton, _orStatusLabel, searchLabel, _orSearchBox, _modelListView, _createProfileButton, orKeyLink]);
@@ -299,10 +300,11 @@ public sealed class SettingsForm : Form
         _gaiModelListView = new ListView { Location = new Point(innerPad, 136), Size = new Size(cardW - innerPad * 2, 244), View = View.Details, FullRowSelect = true, GridLines = true, MultiSelect = false, HideSelection = false, BorderStyle = BorderStyle.FixedSingle, Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right | AnchorStyles.Bottom };
         _gaiModelListView.Columns.Add("Display Name", 190); _gaiModelListView.Columns.Add("Model ID", 170); _gaiModelListView.Columns.Add("Context", 80, HorizontalAlignment.Right);
 
-        _gaiCreateProfileButton = MakePrimary("Create Profile from Selected", 210, 30); _gaiCreateProfileButton.Location = new Point(innerPad, 388); _gaiCreateProfileButton.Enabled = false; _gaiCreateProfileButton.Anchor = AnchorStyles.Bottom | AnchorStyles.Left; _gaiCreateProfileButton.Click += GaiCreateProfile_Click;
+        int gaiCardH = formH - 96;
+        _gaiCreateProfileButton = MakePrimary("Create Profile from Selected", 210, 30); _gaiCreateProfileButton.Location = new Point(innerPad, gaiCardH - 44); _gaiCreateProfileButton.Enabled = false; _gaiCreateProfileButton.Anchor = AnchorStyles.Bottom | AnchorStyles.Left; _gaiCreateProfileButton.Click += GaiCreateProfile_Click;
         _gaiModelListView.SelectedIndexChanged += (_, _) => _gaiCreateProfileButton.Enabled = _gaiModelListView.SelectedItems.Count > 0;
 
-        var gaiKeyLink = new LinkLabel { Text = "Get your Google AI Studio API key", Location = new Point(234, 394), AutoSize = true, LinkColor = ThemeColors.Accent, ActiveLinkColor = ThemeColors.AccentHover, BackColor = Color.Transparent, Anchor = AnchorStyles.Bottom | AnchorStyles.Left };
+        var gaiKeyLink = new LinkLabel { Text = "Get your Google AI Studio API key", Location = new Point(234, gaiCardH - 38), AutoSize = true, LinkColor = ThemeColors.Accent, ActiveLinkColor = ThemeColors.AccentHover, BackColor = Color.Transparent, Anchor = AnchorStyles.Bottom | AnchorStyles.Left };
         gaiKeyLink.LinkClicked += (_, _) => System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo { FileName = "https://aistudio.google.com/apikey", UseShellExecute = true });
 
         gaiCard.Controls.AddRange([gaiSectionLabel, gaiDescription, gaiKeyLabel, _gaiApiKeyBox, _gaiFetchButton, _gaiStatusLabel, gaiSearchLabel, _gaiSearchBox, _gaiModelListView, _gaiCreateProfileButton, gaiKeyLink]);
@@ -323,10 +325,11 @@ public sealed class SettingsForm : Form
         _nvModelListView = new ListView { Location = new Point(innerPad, 118), Size = new Size(cardW - innerPad * 2, 264), View = View.Details, FullRowSelect = true, GridLines = true, MultiSelect = false, HideSelection = false, BorderStyle = BorderStyle.FixedSingle, Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right | AnchorStyles.Bottom };
         _nvModelListView.Columns.Add("Model ID", 290); _nvModelListView.Columns.Add("Owner", 160);
 
-        _nvCreateProfileButton = MakePrimary("Create Profile from Selected", 210, 30); _nvCreateProfileButton.Location = new Point(innerPad, 390); _nvCreateProfileButton.Enabled = false; _nvCreateProfileButton.Anchor = AnchorStyles.Bottom | AnchorStyles.Left; _nvCreateProfileButton.Click += NvCreateProfile_Click;
+        int nvCardH = formH - 96;
+        _nvCreateProfileButton = MakePrimary("Create Profile from Selected", 210, 30); _nvCreateProfileButton.Location = new Point(innerPad, nvCardH - 44); _nvCreateProfileButton.Enabled = false; _nvCreateProfileButton.Anchor = AnchorStyles.Bottom | AnchorStyles.Left; _nvCreateProfileButton.Click += NvCreateProfile_Click;
         _nvModelListView.SelectedIndexChanged += (_, _) => _nvCreateProfileButton.Enabled = _nvModelListView.SelectedItems.Count > 0;
 
-        var nvKeyLink = new LinkLabel { Text = "Get your NVIDIA API key", Location = new Point(234, 396), AutoSize = true, LinkColor = ThemeColors.Accent, ActiveLinkColor = ThemeColors.AccentHover, BackColor = Color.Transparent, Anchor = AnchorStyles.Bottom | AnchorStyles.Left };
+        var nvKeyLink = new LinkLabel { Text = "Get your NVIDIA API key", Location = new Point(234, nvCardH - 38), AutoSize = true, LinkColor = ThemeColors.Accent, ActiveLinkColor = ThemeColors.AccentHover, BackColor = Color.Transparent, Anchor = AnchorStyles.Bottom | AnchorStyles.Left };
         nvKeyLink.LinkClicked += (_, _) => System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo { FileName = "https://build.nvidia.com/models", UseShellExecute = true });
 
         nvCard.Controls.AddRange([nvSectionLabel, nvDescription, _nvFetchButton, _nvStatusLabel, nvSearchLabel, _nvSearchBox, _nvModelListView, _nvCreateProfileButton, nvKeyLink]);
@@ -349,10 +352,11 @@ public sealed class SettingsForm : Form
         _claudeModelListView = new ListView { Location = new Point(innerPad, 136), Size = new Size(cardW - innerPad * 2, 244), View = View.Details, FullRowSelect = true, GridLines = true, MultiSelect = false, HideSelection = false, BorderStyle = BorderStyle.FixedSingle, Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right | AnchorStyles.Bottom };
         _claudeModelListView.Columns.Add("Display Name", 190); _claudeModelListView.Columns.Add("Model ID", 170); _claudeModelListView.Columns.Add("Context", 80, HorizontalAlignment.Right);
 
-        _claudeCreateProfileButton = MakePrimary("Create Profile from Selected", 210, 30); _claudeCreateProfileButton.Location = new Point(innerPad, 388); _claudeCreateProfileButton.Enabled = false; _claudeCreateProfileButton.Anchor = AnchorStyles.Bottom | AnchorStyles.Left; _claudeCreateProfileButton.Click += ClaudeCreateProfile_Click;
+        int claudeCardH = formH - 96;
+        _claudeCreateProfileButton = MakePrimary("Create Profile from Selected", 210, 30); _claudeCreateProfileButton.Location = new Point(innerPad, claudeCardH - 44); _claudeCreateProfileButton.Enabled = false; _claudeCreateProfileButton.Anchor = AnchorStyles.Bottom | AnchorStyles.Left; _claudeCreateProfileButton.Click += ClaudeCreateProfile_Click;
         _claudeModelListView.SelectedIndexChanged += (_, _) => _claudeCreateProfileButton.Enabled = _claudeModelListView.SelectedItems.Count > 0;
 
-        var claudeKeyLink = new LinkLabel { Text = "Get your Anthropic API key", Location = new Point(234, 394), AutoSize = true, LinkColor = ThemeColors.Accent, ActiveLinkColor = ThemeColors.AccentHover, BackColor = Color.Transparent, Anchor = AnchorStyles.Bottom | AnchorStyles.Left };
+        var claudeKeyLink = new LinkLabel { Text = "Get your Anthropic API key", Location = new Point(234, claudeCardH - 38), AutoSize = true, LinkColor = ThemeColors.Accent, ActiveLinkColor = ThemeColors.AccentHover, BackColor = Color.Transparent, Anchor = AnchorStyles.Bottom | AnchorStyles.Left };
         claudeKeyLink.LinkClicked += (_, _) => System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo { FileName = "https://console.anthropic.com/settings/keys", UseShellExecute = true });
 
         claudeCard.Controls.AddRange([claudeSectionLabel, claudeDescription, claudeKeyLabel, _claudeApiKeyBox, _claudeFetchButton, _claudeStatusLabel, claudeSearchLabel, _claudeSearchBox, _claudeModelListView, _claudeCreateProfileButton, claudeKeyLink]);
