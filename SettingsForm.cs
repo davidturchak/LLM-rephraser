@@ -131,11 +131,38 @@ public sealed class SettingsForm : Form
             ActiveTabFont = new Font("Segoe UI", 9f, FontStyle.Bold),
             InactiveTabColor = ThemeColors.BgPage,
             InActiveTabForeColor = ThemeColors.IsDark ? Color.FromArgb(180, 180, 180) : ThemeColors.TextBody,
+            TabStyle = typeof(Syncfusion.Windows.Forms.Tools.TabRenderer2D),
             BorderStyle = BorderStyle.None,
+            BorderVisible = false,
             FocusOnTabClick = false,
             TabGap = 4,
             FixedSingleBorderColor = ThemeColors.BgPage,
+            SeparatorColor = ThemeColors.BgPage,
             TabPanelBackColor = ThemeColors.BgPage
+        };
+        tabControl.DrawItem += (_, args) =>
+        {
+            var g = args.Graphics;
+            var bounds = args.Bounds;
+            bool isActive = args.Index == tabControl.SelectedIndex;
+
+            using var bgBrush = new SolidBrush(ThemeColors.BgPage);
+            g.FillRectangle(bgBrush, bounds);
+
+            if (isActive)
+            {
+                using var underline = new Pen(ThemeColors.Accent, 2f);
+                g.DrawLine(underline, bounds.Left + 2, bounds.Bottom - 1, bounds.Right - 2, bounds.Bottom - 1);
+            }
+
+            var font = isActive ? new Font("Segoe UI", 9f, FontStyle.Bold) : new Font("Segoe UI", 9f);
+            var textColor = isActive
+                ? (ThemeColors.IsDark ? Color.White : ThemeColors.Accent)
+                : (ThemeColors.IsDark ? Color.FromArgb(180, 180, 180) : ThemeColors.TextBody);
+            using var textBrush = new SolidBrush(textColor);
+            var sf = new StringFormat { Alignment = StringAlignment.Center, LineAlignment = StringAlignment.Center };
+            g.DrawString(tabControl.TabPages[args.Index].Text, font, textBrush, bounds, sf);
+            if (!isActive) font.Dispose();
         };
 
         // ═══ TAB 1: Settings ═══

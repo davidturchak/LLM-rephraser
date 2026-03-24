@@ -319,6 +319,9 @@ public sealed class TrayApplicationContext : ApplicationContext
 
         _sourceWindow = GetForegroundWindow();
 
+        // Detect if the source is an editable text field
+        bool isEditable = await EditableFieldDetector.IsEditableAsync(_sourceWindow);
+
         // Save current clipboard
         IDataObject? savedClipboard = null;
         try
@@ -359,7 +362,7 @@ public sealed class TrayApplicationContext : ApplicationContext
         }
 
         // Store text and clipboard for later
-        _styleMenu.Tag = (selectedText, savedClipboard);
+        _styleMenu.Tag = (selectedText, savedClipboard, isEditable);
 
         // Show style picker at cursor — use TopMost helper to ensure visibility
         var pos = Cursor.Position;
@@ -405,7 +408,7 @@ public sealed class TrayApplicationContext : ApplicationContext
         }
 
         // Store text (no saved clipboard to restore — user explicitly copied)
-        _styleMenu.Tag = (clipText, (IDataObject?)null);
+        _styleMenu.Tag = (clipText, (IDataObject?)null, false);
 
         // Show style picker at cursor
         var pos = Cursor.Position;
@@ -420,7 +423,7 @@ public sealed class TrayApplicationContext : ApplicationContext
         if (sender is not ToolStripMenuItem item) return;
 
         var (styleName, prompt) = ((string, string))item.Tag!;
-        var (selectedText, savedClipboard) = ((string, IDataObject?))_styleMenu.Tag!;
+        var (selectedText, savedClipboard, isEditable) = ((string, IDataObject?, bool))_styleMenu.Tag!;
 
         var config = AppConfig.Load();
         var profile = config.Active;
@@ -483,7 +486,7 @@ public sealed class TrayApplicationContext : ApplicationContext
         }
 
         // Show result dialog
-        using var resultForm = new ResultForm(styleName, selectedText, suggestion);
+        using var resultForm = new ResultForm(styleName, selectedText, suggestion, isEditable);
         resultForm.ShowDialog();
 
         if (resultForm.Accepted)
@@ -498,10 +501,22 @@ public sealed class TrayApplicationContext : ApplicationContext
             // Paste over the still-active selection
             SimulateCtrlV();
             await Task.Delay(150);
+
+            // Restore original clipboard
+            RestoreClipboard(savedClipboard);
+        }
+        else if (resultForm.Copied)
+        {
+            // Just copy to clipboard, don't paste
+            Clipboard.SetText(resultForm.SuggestedText);
+            _trayIcon.ShowBalloonTip(1500, "LLM-Rephraser", "Suggestion copied to clipboard", ToolTipIcon.Info);
+        }
+        else
+        {
+            // Cancelled — restore original clipboard
+            RestoreClipboard(savedClipboard);
         }
 
-        // Restore original clipboard
-        RestoreClipboard(savedClipboard);
         _isBusy = false;
     }
 

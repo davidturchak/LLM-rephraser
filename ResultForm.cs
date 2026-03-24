@@ -12,6 +12,7 @@ public sealed class ResultForm : Form
 
     public string SuggestedText => _suggestedBox.Text;
     public bool Accepted { get; private set; }
+    public bool Copied { get; private set; }
 
     // ── RTL detection ────────────────────────────────────────────────────
     private static bool IsRtl(string text) =>
@@ -58,7 +59,7 @@ public sealed class ResultForm : Form
         }
     }
 
-    public ResultForm(string styleName, string originalText, string suggestedText)
+    public ResultForm(string styleName, string originalText, string suggestedText, bool isEditable = true)
     {
         AutoScaleDimensions = new SizeF(7F, 15F);
         AutoScaleMode = AutoScaleMode.Font;
@@ -203,8 +204,8 @@ public sealed class ResultForm : Form
 
         var acceptButton = new Button
         {
-            Text = "Accept && Replace",
-            Size = new Size(138, 32),
+            Text = isEditable ? "Accept && Replace" : "Copy to Clipboard",
+            Size = new Size(isEditable ? 138 : 148, 32),
             FlatStyle = FlatStyle.Flat,
             BackColor = ThemeColors.Accent,
             ForeColor = ThemeColors.AccentOnAccent,
@@ -213,7 +214,11 @@ public sealed class ResultForm : Form
         };
         acceptButton.FlatAppearance.BorderSize = 0;
         acceptButton.FlatAppearance.MouseOverBackColor = ThemeColors.AccentHover;
-        acceptButton.Click += (_, _) => { Accepted = true; Close(); };
+        acceptButton.Click += (_, _) =>
+        {
+            if (isEditable) Accepted = true; else Copied = true;
+            Close();
+        };
 
         cancelButton.Location  = new Point(formW - pad - cancelButton.Width, y);
         acceptButton.Location  = new Point(cancelButton.Left - acceptButton.Width - 8, y);

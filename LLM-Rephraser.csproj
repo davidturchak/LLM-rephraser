@@ -9,13 +9,17 @@
     <AssemblyName>LLM-Rephraser</AssemblyName>
     <RootNamespace>LlmRephraser</RootNamespace>
     <ApplicationIcon>app.ico</ApplicationIcon>
-    <Version>1.2.26</Version>
+    <Version>1.2.27</Version>
   </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="Syncfusion.Core.WinForms" Version="33.1.44" />
     <PackageReference Include="Syncfusion.SfInput.WinForms" Version="33.1.44" />
     <PackageReference Include="Syncfusion.Tools.Windows" Version="33.1.44" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.WindowsDesktop.App.WPF" />
   </ItemGroup>
 
 </Project>
