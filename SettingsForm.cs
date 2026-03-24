@@ -60,6 +60,16 @@ public sealed class SettingsForm : Form
     private List<NvidiaModel> _allNvModels = [];
     private List<NvidiaModel> _filteredNvModels = [];
 
+    // ── Claude tab fields ──
+    private readonly ListView _claudeModelListView;
+    private readonly Button _claudeFetchButton;
+    private readonly Button _claudeCreateProfileButton;
+    private readonly Label _claudeStatusLabel;
+    private readonly TextBox _claudeSearchBox;
+    private readonly TextBox _claudeApiKeyBox;
+    private List<ClaudeModel> _allClaudeModels = [];
+    private List<ClaudeModel> _filteredClaudeModels = [];
+
     private readonly Button _saveButton;
     private readonly Button _cancelButton;
 
@@ -322,8 +332,34 @@ public sealed class SettingsForm : Form
         nvCard.Controls.AddRange([nvSectionLabel, nvDescription, _nvFetchButton, _nvStatusLabel, nvSearchLabel, _nvSearchBox, _nvModelListView, _nvCreateProfileButton, nvKeyLink]);
         nvTab.Controls.Add(nvCard);
 
+        // ═══ TAB 5: Claude ═══
+        var claudeTab = new TabPageAdv("Claude") { BackColor = ThemeColors.BgPage };
+        var claudeCard = new SectionCard { Location = new Point(4, 4), Size = new Size(cardW, formH - 96), Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right | AnchorStyles.Bottom };
+        var claudeSectionLabel = MakeSectionLabel("BROWSE CLAUDE MODELS"); claudeSectionLabel.Location = new Point(innerPad, 10);
+        var claudeDescription = new Label { Text = "Browse Claude models from Anthropic and create a profile with one click.", Location = new Point(innerPad, 28), Size = new Size(cardW - innerPad * 2, 18), ForeColor = ThemeColors.TextMuted, Font = new Font("Segoe UI", 8f), BackColor = Color.Transparent, Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right };
+
+        var claudeKeyLabel = new Label { Text = "API Key:", Location = new Point(innerPad, 56), Size = new Size(55, 17), TextAlign = ContentAlignment.MiddleLeft, ForeColor = ThemeColors.TextBody, BackColor = Color.Transparent };
+        _claudeApiKeyBox = new TextBox { Location = new Point(73, 54), Size = new Size(cardW - 73 - 100 - innerPad - 8, 23), UseSystemPasswordChar = true };
+        _claudeFetchButton = MakeSecondary("Fetch Models", 100, 27); _claudeFetchButton.Location = new Point(cardW - innerPad - 100, 53); _claudeFetchButton.Click += ClaudeFetchModels_Click;
+        _claudeStatusLabel = new Label { Text = "", Location = new Point(innerPad, 84), Size = new Size(cardW - innerPad * 2, 17), TextAlign = ContentAlignment.MiddleLeft, BackColor = Color.Transparent, Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right };
+
+        var claudeSearchLabel = new Label { Text = "Search:", Location = new Point(innerPad, 108), Size = new Size(50, 17), TextAlign = ContentAlignment.MiddleLeft, ForeColor = ThemeColors.TextBody, BackColor = Color.Transparent };
+        _claudeSearchBox = new TextBox { Location = new Point(68, 106), Size = new Size(200, 23) }; _claudeSearchBox.TextChanged += ClaudeSearch_Changed;
+
+        _claudeModelListView = new ListView { Location = new Point(innerPad, 136), Size = new Size(cardW - innerPad * 2, 244), View = View.Details, FullRowSelect = true, GridLines = true, MultiSelect = false, HideSelection = false, BorderStyle = BorderStyle.FixedSingle, Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right | AnchorStyles.Bottom };
+        _claudeModelListView.Columns.Add("Display Name", 190); _claudeModelListView.Columns.Add("Model ID", 170); _claudeModelListView.Columns.Add("Context", 80, HorizontalAlignment.Right);
+
+        _claudeCreateProfileButton = MakePrimary("Create Profile from Selected", 210, 30); _claudeCreateProfileButton.Location = new Point(innerPad, 388); _claudeCreateProfileButton.Enabled = false; _claudeCreateProfileButton.Anchor = AnchorStyles.Bottom | AnchorStyles.Left; _claudeCreateProfileButton.Click += ClaudeCreateProfile_Click;
+        _claudeModelListView.SelectedIndexChanged += (_, _) => _claudeCreateProfileButton.Enabled = _claudeModelListView.SelectedItems.Count > 0;
+
+        var claudeKeyLink = new LinkLabel { Text = "Get your Anthropic API key", Location = new Point(234, 394), AutoSize = true, LinkColor = ThemeColors.Accent, ActiveLinkColor = ThemeColors.AccentHover, BackColor = Color.Transparent, Anchor = AnchorStyles.Bottom | AnchorStyles.Left };
+        claudeKeyLink.LinkClicked += (_, _) => System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo { FileName = "https://console.anthropic.com/settings/keys", UseShellExecute = true });
+
+        claudeCard.Controls.AddRange([claudeSectionLabel, claudeDescription, claudeKeyLabel, _claudeApiKeyBox, _claudeFetchButton, _claudeStatusLabel, claudeSearchLabel, _claudeSearchBox, _claudeModelListView, _claudeCreateProfileButton, claudeKeyLink]);
+        claudeTab.Controls.Add(claudeCard);
+
         // Assemble
-        tabControl.Controls.Add(settingsTab); tabControl.Controls.Add(openRouterTab); tabControl.Controls.Add(gaiTab); tabControl.Controls.Add(nvTab);
+        tabControl.Controls.Add(settingsTab); tabControl.Controls.Add(openRouterTab); tabControl.Controls.Add(gaiTab); tabControl.Controls.Add(nvTab); tabControl.Controls.Add(claudeTab);
 
         _saveButton = MakePrimary("OK", 80, 30); _saveButton.Location = new Point(formW - 168, formH - 36); _saveButton.Anchor = AnchorStyles.Bottom | AnchorStyles.Right; _saveButton.Click += SaveButton_Click;
         _cancelButton = MakeSecondary("Cancel", 80, 30); _cancelButton.Location = new Point(formW - 84, formH - 36); _cancelButton.Anchor = AnchorStyles.Bottom | AnchorStyles.Right; _cancelButton.Click += (_, _) => { DialogResult = DialogResult.Cancel; Close(); };
@@ -396,6 +432,31 @@ public sealed class SettingsForm : Form
     private void NvSearch_Changed(object? sender, EventArgs e) { var q = _nvSearchBox.Text.Trim(); _filteredNvModels = string.IsNullOrEmpty(q) ? _allNvModels : _allNvModels.Where(m => m.Id.Contains(q, StringComparison.OrdinalIgnoreCase) || m.Owner.Contains(q, StringComparison.OrdinalIgnoreCase)).ToList(); PopulateNvModelList(); }
     private void PopulateNvModelList() { _nvModelListView.BeginUpdate(); _nvModelListView.Items.Clear(); foreach (var m in _filteredNvModels) { var item = new ListViewItem(m.Id); item.SubItems.Add(m.Owner); item.Tag = m; _nvModelListView.Items.Add(item); } _nvModelListView.EndUpdate(); _nvCreateProfileButton.Enabled = false; }
     private void NvCreateProfile_Click(object? sender, EventArgs e) { if (_nvModelListView.SelectedItems.Count == 0) return; var model = (NvidiaModel)_nvModelListView.SelectedItems[0].Tag!; var profileName = $"NVIDIA - {model.Id}"; if (_config.Profiles.ContainsKey(profileName) && MessageBox.Show(this, $"Profile \"{profileName}\" already exists. Overwrite?", "LLM-Rephraser", MessageBoxButtons.YesNo, MessageBoxIcon.Question) != DialogResult.Yes) return; if (_profileBox.SelectedItem != null) SaveFieldsToProfile((string)_profileBox.SelectedItem); _config.Profiles[profileName] = new ProfileConfig { Provider = ApiProvider.OpenAICompatible, ApiEndpoint = "https://integrate.api.nvidia.com/v1/chat/completions", ApiKey = "", ModelName = model.Id }; RefreshProfileList(profileName); MessageBox.Show(this, $"Profile \"{profileName}\" created.\n\nPlease enter your NVIDIA API key in the Settings tab.", "Profile Created", MessageBoxButtons.OK, MessageBoxIcon.Information); }
+
+    // ── Claude ──
+    private sealed class ClaudeModel { public string Id { get; set; } = ""; public string DisplayName { get; set; } = ""; public int MaxInputTokens { get; set; } }
+    private async void ClaudeFetchModels_Click(object? sender, EventArgs e)
+    {
+        if (string.IsNullOrWhiteSpace(_claudeApiKeyBox.Text)) { _claudeStatusLabel.ForeColor = ThemeColors.Error; _claudeStatusLabel.Text = "API key is required to fetch models."; return; }
+        _claudeFetchButton.Enabled = false; _claudeFetchButton.Text = "Fetching..."; _claudeStatusLabel.ForeColor = SystemColors.GrayText; _claudeStatusLabel.Text = "Downloading model list..."; _claudeModelListView.Items.Clear(); _allClaudeModels.Clear();
+        try
+        {
+            using var http = new HttpClient { Timeout = TimeSpan.FromSeconds(30) };
+            http.DefaultRequestHeaders.Add("X-Api-Key", _claudeApiKeyBox.Text.Trim());
+            http.DefaultRequestHeaders.Add("anthropic-version", "2023-06-01");
+            var json = await http.GetStringAsync("https://api.anthropic.com/v1/models?limit=1000");
+            using var doc = JsonDocument.Parse(json);
+            foreach (var model in doc.RootElement.GetProperty("data").EnumerateArray())
+                _allClaudeModels.Add(new ClaudeModel { Id = model.GetProperty("id").GetString() ?? "", DisplayName = model.TryGetProperty("display_name", out var dn) ? dn.GetString() ?? "" : "", MaxInputTokens = model.TryGetProperty("max_input_tokens", out var mt) ? mt.GetInt32() : 0 });
+            _allClaudeModels = _allClaudeModels.OrderBy(m => m.DisplayName).ToList(); _filteredClaudeModels = _allClaudeModels; PopulateClaudeModelList();
+            _claudeStatusLabel.ForeColor = ThemeColors.Success; _claudeStatusLabel.Text = $"Found {_allClaudeModels.Count} models.";
+        }
+        catch (Exception ex) { _claudeStatusLabel.ForeColor = ThemeColors.Error; _claudeStatusLabel.Text = ex.Message.Length > 70 ? ex.Message[..67] + "..." : ex.Message; }
+        finally { _claudeFetchButton.Enabled = true; _claudeFetchButton.Text = "Fetch Models"; }
+    }
+    private void ClaudeSearch_Changed(object? sender, EventArgs e) { var q = _claudeSearchBox.Text.Trim(); _filteredClaudeModels = string.IsNullOrEmpty(q) ? _allClaudeModels : _allClaudeModels.Where(m => m.DisplayName.Contains(q, StringComparison.OrdinalIgnoreCase) || m.Id.Contains(q, StringComparison.OrdinalIgnoreCase)).ToList(); PopulateClaudeModelList(); }
+    private void PopulateClaudeModelList() { _claudeModelListView.BeginUpdate(); _claudeModelListView.Items.Clear(); foreach (var m in _filteredClaudeModels) { var item = new ListViewItem(m.DisplayName); item.SubItems.Add(m.Id); item.SubItems.Add(m.MaxInputTokens > 0 ? $"{m.MaxInputTokens:N0}" : "\u2014"); item.Tag = m; _claudeModelListView.Items.Add(item); } _claudeModelListView.EndUpdate(); _claudeCreateProfileButton.Enabled = false; }
+    private void ClaudeCreateProfile_Click(object? sender, EventArgs e) { if (_claudeModelListView.SelectedItems.Count == 0) return; var model = (ClaudeModel)_claudeModelListView.SelectedItems[0].Tag!; var profileName = $"Claude - {model.DisplayName}"; if (_config.Profiles.ContainsKey(profileName) && MessageBox.Show(this, $"Profile \"{profileName}\" already exists. Overwrite?", "LLM-Rephraser", MessageBoxButtons.YesNo, MessageBoxIcon.Question) != DialogResult.Yes) return; if (_profileBox.SelectedItem != null) SaveFieldsToProfile((string)_profileBox.SelectedItem); _config.Profiles[profileName] = new ProfileConfig { Provider = ApiProvider.Anthropic, ApiEndpoint = "https://api.anthropic.com/v1/messages", ApiKey = _claudeApiKeyBox.Text.Trim(), ModelName = model.Id }; RefreshProfileList(profileName); MessageBox.Show(this, $"Profile \"{profileName}\" created.", "Profile Created", MessageBoxButtons.OK, MessageBoxIcon.Information); }
 
     // ── Settings tab methods ──
     private void RefreshProfileList(string selectName) { _suppressProfileSwitch = true; _profileBox.Items.Clear(); foreach (var name in _config.Profiles.Keys.OrderBy(k => k)) _profileBox.Items.Add(name); var idx = _profileBox.Items.IndexOf(selectName); _profileBox.SelectedIndex = idx >= 0 ? idx : 0; _suppressProfileSwitch = false; LoadProfileIntoFields((string)_profileBox.SelectedItem!); _deleteButton.Enabled = _config.Profiles.Count > 1; }
