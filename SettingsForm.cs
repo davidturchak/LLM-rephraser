@@ -26,8 +26,6 @@ public sealed class SettingsForm : Form
     private readonly Button _testButton;
     private readonly Label _testResultLabel;
     private readonly CheckBoxAdv _shiftRightClickBox;
-    private readonly CheckBoxAdv _floatingToolbarBox;
-    private readonly CheckBoxAdv _contextMenuBox;
     private readonly CheckBoxAdv _startWithWindowsBox;
     private readonly ListBox _langListBox;
     private readonly Button _langAddButton;
@@ -216,13 +214,11 @@ public sealed class SettingsForm : Form
         langCard.Controls.AddRange([langLabel, _langListBox, _langAddButton, _langRemoveButton]);
 
         // Options card
-        var optionsCard = new SectionCard { Location = new Point(4, 388), Size = new Size(cardW, 112) };
+        var optionsCard = new SectionCard { Location = new Point(4, 388), Size = new Size(cardW, 72) };
         var optLabel = MakeSectionLabel("OPTIONS"); optLabel.Location = new Point(innerPad, 10);
         _shiftRightClickBox = new CheckBoxAdv { Text = "Enable Shift+Right-Click to open style picker", Location = new Point(innerPad, 30), AutoSize = true, Checked = _config.ShiftRightClickEnabled, ForeColor = TextBody, BackColor = Color.Transparent, Font = new Font("Segoe UI", 9f) };
-        _floatingToolbarBox = new CheckBoxAdv { Text = "Show floating toolbar when text is selected", Location = new Point(innerPad, 50), AutoSize = true, Checked = _config.FloatingToolbarEnabled, ForeColor = TextBody, BackColor = Color.Transparent, Font = new Font("Segoe UI", 9f) };
-        _contextMenuBox = new CheckBoxAdv { Text = "Add \"Rephrase\" to Windows right-click menu", Location = new Point(innerPad, 70), AutoSize = true, Checked = _config.ContextMenuEnabled, ForeColor = TextBody, BackColor = Color.Transparent, Font = new Font("Segoe UI", 9f) };
-        _startWithWindowsBox = new CheckBoxAdv { Text = "Start LLM-Rephraser with Windows", Location = new Point(innerPad, 90), AutoSize = true, Checked = AppConfig.ReadStartWithWindows(), ForeColor = TextBody, BackColor = Color.Transparent, Font = new Font("Segoe UI", 9f) };
-        optionsCard.Controls.AddRange([optLabel, _shiftRightClickBox, _floatingToolbarBox, _contextMenuBox, _startWithWindowsBox]);
+        _startWithWindowsBox = new CheckBoxAdv { Text = "Start LLM-Rephraser with Windows", Location = new Point(innerPad, 50), AutoSize = true, Checked = AppConfig.ReadStartWithWindows(), ForeColor = TextBody, BackColor = Color.Transparent, Font = new Font("Segoe UI", 9f) };
+        optionsCard.Controls.AddRange([optLabel, _shiftRightClickBox, _startWithWindowsBox]);
 
         settingsPanel.Controls.AddRange([profileCard, connectionCard, langCard, optionsCard]);
         settingsTab.Controls.Add(settingsPanel);
@@ -399,7 +395,7 @@ public sealed class SettingsForm : Form
     {
         if (string.IsNullOrWhiteSpace(_endpointBox.Text)) { MessageBox.Show(this, "API Endpoint URL is required.", "Validation", MessageBoxButtons.OK, MessageBoxIcon.Warning); _endpointBox.Focus(); return; }
         if (string.IsNullOrWhiteSpace(_modelBox.Text)) { MessageBox.Show(this, "Model Name is required.", "Validation", MessageBoxButtons.OK, MessageBoxIcon.Warning); _modelBox.Focus(); return; }
-        var profileName = (string)_profileBox.SelectedItem!; SaveFieldsToProfile(profileName); _config.ActiveProfile = profileName; _config.ShiftRightClickEnabled = _shiftRightClickBox.Checked; _config.FloatingToolbarEnabled = _floatingToolbarBox.Checked; _config.ContextMenuEnabled = _contextMenuBox.Checked; _config.StartWithWindows = _startWithWindowsBox.Checked; _config.TranslationLanguages = _langListBox.Items.Cast<string>().ToList(); _config.Save(); DialogResult = DialogResult.OK; Close();
+        var profileName = (string)_profileBox.SelectedItem!; SaveFieldsToProfile(profileName); _config.ActiveProfile = profileName; _config.ShiftRightClickEnabled = _shiftRightClickBox.Checked; _config.StartWithWindows = _startWithWindowsBox.Checked; _config.TranslationLanguages = _langListBox.Items.Cast<string>().ToList(); _config.Save(); DialogResult = DialogResult.OK; Close();
     }
     private void LangAdd_Click(object? sender, EventArgs e) { var name = PromptForName("Add Language", "Language name:"); if (name == null) return; if (_langListBox.Items.Cast<string>().Any(l => l.Equals(name, StringComparison.OrdinalIgnoreCase))) { MessageBox.Show(this, $"\"{name}\" is already in the list.", "LLM-Rephraser", MessageBoxButtons.OK, MessageBoxIcon.Information); return; } _langListBox.Items.Add(name); }
     private void LangRemove_Click(object? sender, EventArgs e) { if (_langListBox.SelectedIndex >= 0) _langListBox.Items.RemoveAt(_langListBox.SelectedIndex); }

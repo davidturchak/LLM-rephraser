@@ -32,7 +32,6 @@ public sealed class TrayApplicationContext : ApplicationContext
     private readonly ToolStripMenuItem _translateMenu;
     private readonly Form _helperForm;
     private readonly MouseHookWindow _mouseHook;
-    private readonly SelectionDetector _selectionDetector;
     private readonly EventWaitHandle _rephraseEvent;
     private readonly System.Windows.Forms.Timer _rephraseEventTimer;
     private ToolStripMenuItem _profileMenuItem = null!;
@@ -87,7 +86,7 @@ public sealed class TrayApplicationContext : ApplicationContext
 
         _styleMenu.Items.Add(new ToolStripSeparator());
 
-        _translateMenu = new ToolStripMenuItem("Translate", CreateTranslateIcon());
+        _translateMenu = new ToolStripMenuItem("Translate to:", CreateTranslateIcon());
         _styleMenu.Items.Add(_translateMenu);
         _styleMenu.Opening += (_, _) => RebuildTranslateMenu();
 
@@ -116,11 +115,6 @@ public sealed class TrayApplicationContext : ApplicationContext
         _mouseHook = new MouseHookWindow();
         _mouseHook.ShiftRightClickDetected += OnHotkeyPressed;
         ApplyMouseHookSetting();
-
-        // Selection detector — shows style picker when text is dragged
-        _selectionDetector = new SelectionDetector();
-        _selectionDetector.SelectionDetected += OnSelectionDetected;
-        ApplyFloatingToolbarSetting();
 
         // IPC: listen for rephrase signal from context menu / second instance
         _rephraseEvent = new EventWaitHandle(false, EventResetMode.AutoReset, Program.RephraseEventName);
@@ -208,22 +202,6 @@ public sealed class TrayApplicationContext : ApplicationContext
             _mouseHook.Install();
         else
             _mouseHook.Uninstall();
-    }
-
-    private void ApplyFloatingToolbarSetting()
-    {
-        var config = AppConfig.Load();
-        if (config.FloatingToolbarEnabled)
-            _selectionDetector.Install();
-        else
-            _selectionDetector.Uninstall();
-    }
-
-    private void OnSelectionDetected(Point mouseUpPos)
-    {
-        // Reuse the same flow as Ctrl+Shift+R / Shift+Right-Click:
-        // copies the selected text, shows the style picker menu
-        OnHotkeyPressed();
     }
 
     private void ShowAbout()
@@ -324,7 +302,6 @@ public sealed class TrayApplicationContext : ApplicationContext
         using var form = new SettingsForm(config);
         form.ShowDialog();
         ApplyMouseHookSetting();
-        ApplyFloatingToolbarSetting();
     }
 
     private async void OnHotkeyPressed()
@@ -756,7 +733,6 @@ public sealed class TrayApplicationContext : ApplicationContext
         _rephraseEventTimer.Stop();
         _rephraseEventTimer.Dispose();
         _rephraseEvent.Dispose();
-        _selectionDetector.Dispose();
         _mouseHook.Dispose();
         _hotkeyWindow.Dispose();
         _llmClient.Dispose();
@@ -774,8 +750,7 @@ public sealed class TrayApplicationContext : ApplicationContext
             _rephraseEventTimer.Stop();
             _rephraseEventTimer.Dispose();
             _rephraseEvent.Dispose();
-            _selectionDetector.Dispose();
-            _mouseHook.Dispose();
+                _mouseHook.Dispose();
             _hotkeyWindow.Dispose();
             _llmClient.Dispose();
             _helperForm.Dispose();
