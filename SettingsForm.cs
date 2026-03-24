@@ -126,10 +126,11 @@ public sealed class SettingsForm : Form
             Location = new Point(8, 8),
             Size = new Size(formW - 16, formH - 52),
             Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right | AnchorStyles.Bottom,
-            ActiveTabColor = ThemeColors.BgCard,
-            ActiveTabForeColor = ThemeColors.Accent,
+            ActiveTabColor = ThemeColors.IsDark ? ThemeColors.BgPage : ThemeColors.BgCard,
+            ActiveTabForeColor = ThemeColors.IsDark ? Color.White : ThemeColors.Accent,
             ActiveTabFont = new Font("Segoe UI", 9f, FontStyle.Bold),
             InactiveTabColor = ThemeColors.BgPage,
+            ForeColor = ThemeColors.IsDark ? Color.FromArgb(180, 180, 180) : SystemColors.ControlText,
             BorderStyle = BorderStyle.None,
             FocusOnTabClick = false,
             TabGap = 4
