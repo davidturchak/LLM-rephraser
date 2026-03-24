@@ -31,7 +31,6 @@ public sealed class TrayApplicationContext : ApplicationContext
     private readonly ContextMenuStrip _styleMenu;
     private readonly ToolStripMenuItem _translateMenu;
     private readonly Form _helperForm;
-    private readonly MouseHookWindow _mouseHook;
     private readonly EventWaitHandle _rephraseEvent;
     private readonly System.Windows.Forms.Timer _rephraseEventTimer;
     private ToolStripMenuItem _profileMenuItem = null!;
@@ -115,11 +114,6 @@ public sealed class TrayApplicationContext : ApplicationContext
                 MessageBoxIcon.Warning);
         }
 
-        // Shift+Right-Click mouse hook
-        _mouseHook = new MouseHookWindow();
-        _mouseHook.ShiftRightClickDetected += OnHotkeyPressed;
-        ApplyMouseHookSetting();
-
         // IPC: listen for rephrase signal from context menu / second instance
         _rephraseEvent = new EventWaitHandle(false, EventResetMode.AutoReset, Program.RephraseEventName);
         _rephraseEventTimer = new System.Windows.Forms.Timer { Interval = 500 };
@@ -197,15 +191,6 @@ public sealed class TrayApplicationContext : ApplicationContext
             _translateMenu.DropDownItems.Add(item);
         }
         _translateMenu.Enabled = _translateMenu.DropDownItems.Count > 0;
-    }
-
-    private void ApplyMouseHookSetting()
-    {
-        var config = AppConfig.Load();
-        if (config.ShiftRightClickEnabled)
-            _mouseHook.Install();
-        else
-            _mouseHook.Uninstall();
     }
 
     private void ShowAbout()
@@ -310,7 +295,6 @@ public sealed class TrayApplicationContext : ApplicationContext
         var config = AppConfig.Load();
         using var form = new SettingsForm(config);
         form.ShowDialog();
-        ApplyMouseHookSetting();
     }
 
     private async void OnHotkeyPressed()
@@ -558,14 +542,12 @@ public sealed class TrayApplicationContext : ApplicationContext
 
     private static async Task WaitForModifierRelease()
     {
-        const int VK_RBUTTON = 0x02;
-        // Wait until Ctrl, Shift, Alt, and right mouse button are all released (max ~1.5s)
+        // Wait until Ctrl, Shift, Alt are all released (max ~1.5s)
         for (int i = 0; i < 60; i++)
         {
             bool anyHeld = (GetAsyncKeyState(VK_CONTROL) & 0x8000) != 0
                         || (GetAsyncKeyState(VK_SHIFT) & 0x8000) != 0
-                        || (GetAsyncKeyState(0x12) & 0x8000) != 0
-                        || (GetAsyncKeyState(VK_RBUTTON) & 0x8000) != 0;
+                        || (GetAsyncKeyState(0x12) & 0x8000) != 0;
             if (!anyHeld) break;
             await Task.Delay(25);
         }
@@ -777,7 +759,6 @@ public sealed class TrayApplicationContext : ApplicationContext
         _rephraseEventTimer.Stop();
         _rephraseEventTimer.Dispose();
         _rephraseEvent.Dispose();
-        _mouseHook.Dispose();
         _hotkeyWindow.Dispose();
         _llmClient.Dispose();
         _helperForm.Dispose();
@@ -794,7 +775,6 @@ public sealed class TrayApplicationContext : ApplicationContext
             _rephraseEventTimer.Stop();
             _rephraseEventTimer.Dispose();
             _rephraseEvent.Dispose();
-                _mouseHook.Dispose();
             _hotkeyWindow.Dispose();
             _llmClient.Dispose();
             _helperForm.Dispose();

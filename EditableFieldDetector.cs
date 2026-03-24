@@ -126,9 +126,21 @@ public static class EditableFieldDetector
 
                 // Check ControlType
                 var controlType = element.Current.ControlType;
-                if (controlType == System.Windows.Automation.ControlType.Edit ||
-                    controlType == System.Windows.Automation.ControlType.Document)
+                if (controlType == System.Windows.Automation.ControlType.Edit)
                     return true;
+
+                // Document controls (e.g. Outlook reading pane, Word) —
+                // check if it actually accepts text input via TextPattern2/ValuePattern
+                if (controlType == System.Windows.Automation.ControlType.Document)
+                {
+                    // If ValuePattern is available, trust its IsReadOnly
+                    if (element.TryGetCurrentPattern(
+                            System.Windows.Automation.ValuePattern.Pattern, out var vp2))
+                        return !((System.Windows.Automation.ValuePattern)vp2).Current.IsReadOnly;
+
+                    // No ValuePattern — read-only document (Outlook reading pane, etc.)
+                    return false;
+                }
 
                 return false;
             }

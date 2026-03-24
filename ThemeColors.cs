@@ -59,6 +59,10 @@ public static class ThemeColors
     public static Color TextMuted => _isDark ? Color.FromArgb(140, 145, 155) : Color.FromArgb(148, 163, 184);
     public static Color TextOrigBody => _isDark ? Color.FromArgb(170, 178, 190) : Color.FromArgb(100, 116, 139);
 
+    // ── Input controls ──
+    public static Color BgInput => _isDark ? Color.FromArgb(30, 30, 30) : SystemColors.Window;
+    public static Color TextInput => _isDark ? Color.FromArgb(220, 220, 220) : SystemColors.WindowText;
+
     // ── Semantic ──
     public static Color Success => Color.FromArgb(0, 128, 0);
     public static Color Error => Color.FromArgb(234, 88, 12); // orange

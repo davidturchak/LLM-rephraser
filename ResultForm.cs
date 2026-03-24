@@ -29,8 +29,8 @@ public sealed partial class ResultForm : Form
 
         InitializeComponent();
 
-        // ── Button label — hardcoded, never conditional ─────────────────
-        btnAccept.Text = "Accept && Replace";
+        // ── Button label ──────────────────────────────────────────────────
+        btnAccept.Text = _isEditable ? "Accept && Replace" : "Copy to Clipboard";
 
         // ── Form title ──────────────────────────────────────────────────
         Text = $"LLM-Rephraser \u2014 {styleName}";
@@ -40,8 +40,13 @@ public sealed partial class ResultForm : Form
         float dpiScale;
         using (var gfx = Graphics.FromHwnd(IntPtr.Zero)) { dpiScale = gfx.DpiX / 96f; }
         int availW = (int)(workArea.Width / dpiScale);
+        int availH = (int)(workArea.Height / dpiScale);
         int formW = Math.Clamp(availW * 2 / 5, 400, 600);
-        ClientSize = new Size(formW, 420);
+
+        // Rows: label(26) + orig(80) + spacer(16) + label(26) + sugg(110)
+        //      + chars(30) + sep(15) + buttons(40) + padding(10+24)
+        int formH = 10 + 26 + 80 + 16 + 26 + 110 + 30 + 15 + 40 + 24;
+        ClientSize = new Size(formW, formH);
 
         // ── RTL ─────────────────────────────────────────────────────────
         if (IsRtl(originalText))
@@ -54,7 +59,10 @@ public sealed partial class ResultForm : Form
         rtbSuggestion.Text = suggestedText;
         lblCharCount.Text = suggestedText.Length + " chars";
 
-        // ── Place caret at end ──────────────────────────────────────────
+        // ── Reset formatting after text assignment ────────────────────
+        rtbSuggestion.SelectAll();
+        rtbSuggestion.SelectionBackColor = ColorTranslator.FromHtml("#161616");
+        rtbSuggestion.SelectionColor = ColorTranslator.FromHtml("#dddddd");
         rtbSuggestion.Select(suggestedText.Length, 0);
         ActiveControl = rtbSuggestion;
 
@@ -71,18 +79,8 @@ public sealed partial class ResultForm : Form
     // ── Form_Load ────────────────────────────────────────────────────────
     private void ResultForm_Load(object? sender, EventArgs e)
     {
-        // Triple-enforce button label
-        btnAccept.Text = "Accept && Replace";
-
-        // Sync accent bar heights after layout is complete
-        pnlOriginalAccent.Height = rtbOriginal.Height;
-        pnlSuggestionAccent.Height = rtbSuggestion.Height;
-
-        // Keep accent bars in sync on any future resize
-        rtbOriginal.SizeChanged += (_, _) =>
-            pnlOriginalAccent.Height = rtbOriginal.Height;
-        rtbSuggestion.SizeChanged += (_, _) =>
-            pnlSuggestionAccent.Height = rtbSuggestion.Height;
+        // Reinforce button label
+        btnAccept.Text = _isEditable ? "Accept && Replace" : "Copy to Clipboard";
 
         // Focus suggestion box so caret appears immediately
         rtbSuggestion.Focus();
@@ -98,9 +96,14 @@ public sealed partial class ResultForm : Form
     private void BtnAccept_Click(object? sender, EventArgs e)
     {
         if (_isEditable)
+        {
             Accepted = true;
+        }
         else
+        {
+            Clipboard.SetText(rtbSuggestion.Text);
             Copied = true;
+        }
         Close();
     }
 }

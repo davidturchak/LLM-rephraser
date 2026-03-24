@@ -25,7 +25,6 @@ public sealed class SettingsForm : Form
     private readonly TextBox _modelBox;
     private readonly Button _testButton;
     private readonly Label _testResultLabel;
-    private readonly CheckBoxAdv _shiftRightClickBox;
     private readonly CheckBoxAdv _startWithWindowsBox;
     private readonly ComboBoxAdv _themeBox;
     private readonly ListBox _langListBox;
@@ -72,6 +71,7 @@ public sealed class SettingsForm : Form
 
     private readonly Button _saveButton;
     private readonly Button _cancelButton;
+    private readonly TabControlAdv _tabControl;
 
     private AppConfig _config;
     private bool _suppressProfileSwitch;
@@ -131,7 +131,7 @@ public sealed class SettingsForm : Form
         int formH = Math.Min(580, availH);
         ClientSize = new Size(formW, formH);
 
-        var tabControl = new TabControlAdv
+        _tabControl = new TabControlAdv
         {
             Location = new Point(8, 8),
             Size = new Size(formW - 16, formH - 52),
@@ -150,11 +150,11 @@ public sealed class SettingsForm : Form
             SeparatorColor = ThemeColors.BgPage,
             TabPanelBackColor = ThemeColors.BgPage
         };
-        tabControl.DrawItem += (_, args) =>
+        _tabControl.DrawItem += (_, args) =>
         {
             var g = args.Graphics;
             var bounds = args.Bounds;
-            bool isActive = args.Index == tabControl.SelectedIndex;
+            bool isActive = args.Index == _tabControl.SelectedIndex;
 
             using var bgBrush = new SolidBrush(ThemeColors.BgPage);
             g.FillRectangle(bgBrush, bounds);
@@ -171,7 +171,7 @@ public sealed class SettingsForm : Form
                 : (ThemeColors.IsDark ? Color.FromArgb(180, 180, 180) : ThemeColors.TextBody);
             using var textBrush = new SolidBrush(textColor);
             var sf = new StringFormat { Alignment = StringAlignment.Center, LineAlignment = StringAlignment.Center };
-            g.DrawString(tabControl.TabPages[args.Index].Text, font, textBrush, bounds, sf);
+            g.DrawString(_tabControl.TabPages[args.Index].Text, font, textBrush, bounds, sf);
             if (!isActive) font.Dispose();
         };
 
@@ -246,15 +246,15 @@ public sealed class SettingsForm : Form
         langCard.Controls.AddRange([langLabel, _langListBox, _langAddButton, _langRemoveButton]);
 
         // Options card
-        var optionsCard = new SectionCard { Location = new Point(4, 388), Size = new Size(cardW, 100) };
+        var optionsCard = new SectionCard { Location = new Point(4, 388), Size = new Size(cardW, 80) };
         var optLabel = MakeSectionLabel("OPTIONS"); optLabel.Location = new Point(innerPad, 10);
         var themeLabel = new Label { Text = "Theme:", Location = new Point(innerPad, 32), Size = new Size(50, 17), TextAlign = ContentAlignment.MiddleLeft, ForeColor = ThemeColors.TextBody, BackColor = Color.Transparent };
         _themeBox = new ComboBoxAdv { DropDownStyle = ComboBoxStyle.DropDownList, Location = new Point(68, 30), Size = new Size(120, 23) };
         _themeBox.Items.AddRange(new object[] { "System", "Light", "Dark" });
         _themeBox.SelectedIndex = (int)_config.Theme;
-        _shiftRightClickBox = new CheckBoxAdv { Text = "Enable Shift+Right-Click to open style picker", Location = new Point(innerPad, 56), AutoSize = true, Checked = _config.ShiftRightClickEnabled, ForeColor = ThemeColors.TextBody, BackColor = Color.Transparent, Font = new Font("Segoe UI", 9f) };
-        _startWithWindowsBox = new CheckBoxAdv { Text = "Start LLM-Rephraser with Windows", Location = new Point(innerPad, 76), AutoSize = true, Checked = AppConfig.ReadStartWithWindows(), ForeColor = ThemeColors.TextBody, BackColor = Color.Transparent, Font = new Font("Segoe UI", 9f) };
-        optionsCard.Controls.AddRange([optLabel, themeLabel, _themeBox, _shiftRightClickBox, _startWithWindowsBox]);
+        _themeBox.SelectedIndexChanged += ThemeBox_Changed;
+        _startWithWindowsBox = new CheckBoxAdv { Text = "Start LLM-Rephraser with Windows", Location = new Point(innerPad, 56), AutoSize = true, Checked = AppConfig.ReadStartWithWindows(), ForeColor = ThemeColors.TextBody, BackColor = Color.Transparent, Font = new Font("Segoe UI", 9f) };
+        optionsCard.Controls.AddRange([optLabel, themeLabel, _themeBox, _startWithWindowsBox]);
 
         settingsPanel.Controls.AddRange([profileCard, connectionCard, langCard, optionsCard]);
         settingsTab.Controls.Add(settingsPanel);
@@ -371,15 +371,106 @@ public sealed class SettingsForm : Form
         claudeTab.Controls.AddRange([claudeCard, claudeBottomPanel]);
 
         // Assemble
-        tabControl.Controls.Add(settingsTab); tabControl.Controls.Add(openRouterTab); tabControl.Controls.Add(gaiTab); tabControl.Controls.Add(nvTab); tabControl.Controls.Add(claudeTab);
+        _tabControl.Controls.Add(settingsTab); _tabControl.Controls.Add(openRouterTab); _tabControl.Controls.Add(gaiTab); _tabControl.Controls.Add(nvTab); _tabControl.Controls.Add(claudeTab);
 
         _saveButton = MakePrimary("OK", 80, 30); _saveButton.Location = new Point(formW - 168, formH - 36); _saveButton.Anchor = AnchorStyles.Bottom | AnchorStyles.Right; _saveButton.Click += SaveButton_Click;
         _cancelButton = MakeSecondary("Cancel", 80, 30); _cancelButton.Location = new Point(formW - 84, formH - 36); _cancelButton.Anchor = AnchorStyles.Bottom | AnchorStyles.Right; _cancelButton.Click += (_, _) => { DialogResult = DialogResult.Cancel; Close(); };
 
-        Controls.AddRange([tabControl, _saveButton, _cancelButton]);
+        Controls.AddRange([_tabControl, _saveButton, _cancelButton]);
         AcceptButton = _saveButton; CancelButton = _cancelButton;
 
+        ApplyThemeToControls();
+
         RefreshProfileList(_config.ActiveProfile);
+    }
+
+    private void ThemeBox_Changed(object? sender, EventArgs e)
+    {
+        ThemeColors.SetMode((ThemeMode)_themeBox.SelectedIndex);
+        ApplyThemeToControls();
+        Invalidate(true);
+    }
+
+    private void ApplyThemeToControls()
+    {
+        BackColor = ThemeColors.BgPage;
+
+        // Tab control
+        _tabControl.ActiveTabColor = ThemeColors.BgPage;
+        _tabControl.ActiveTabForeColor = ThemeColors.IsDark ? Color.White : ThemeColors.Accent;
+        _tabControl.InactiveTabColor = ThemeColors.BgPage;
+        _tabControl.InActiveTabForeColor = ThemeColors.IsDark ? Color.FromArgb(180, 180, 180) : ThemeColors.TextBody;
+        _tabControl.FixedSingleBorderColor = ThemeColors.BgPage;
+        _tabControl.SeparatorColor = ThemeColors.BgPage;
+        _tabControl.TabPanelBackColor = ThemeColors.BgPage;
+
+        // Tab pages
+        foreach (TabPageAdv tab in _tabControl.TabPages)
+            tab.BackColor = ThemeColors.BgPage;
+
+        foreach (var ctrl in GetAllControls(this))
+        {
+            switch (ctrl)
+            {
+                case SectionCard card:
+                    card.BackColor = ThemeColors.BgCard;
+                    card.Invalidate();
+                    break;
+                case TextBox tb:
+                    tb.BackColor = ThemeColors.BgInput;
+                    tb.ForeColor = ThemeColors.TextInput;
+                    break;
+                case ListBox lb:
+                    lb.BackColor = ThemeColors.BgInput;
+                    lb.ForeColor = ThemeColors.TextInput;
+                    break;
+                case ListView lv:
+                    lv.BackColor = ThemeColors.BgInput;
+                    lv.ForeColor = ThemeColors.TextInput;
+                    break;
+                case ComboBoxAdv cb:
+                    cb.BackColor = ThemeColors.BgInput;
+                    cb.ForeColor = ThemeColors.TextInput;
+                    break;
+                case CheckBoxAdv chk:
+                    chk.BackColor = Color.Transparent;
+                    chk.ForeColor = ThemeColors.TextBody;
+                    break;
+                case Button btn:
+                    if (btn.FlatAppearance.BorderSize == 0)
+                    {
+                        // Primary button — keep accent colors
+                        btn.BackColor = ThemeColors.Accent;
+                        btn.ForeColor = ThemeColors.AccentOnAccent;
+                        btn.FlatAppearance.MouseOverBackColor = ThemeColors.AccentHover;
+                    }
+                    else
+                    {
+                        // Secondary button
+                        btn.BackColor = ThemeColors.BgCard;
+                        btn.ForeColor = ThemeColors.TextBody;
+                        btn.FlatAppearance.BorderColor = ThemeColors.BorderCard;
+                        btn.FlatAppearance.MouseOverBackColor = ThemeColors.BgPage;
+                    }
+                    break;
+                case Label lbl:
+                    lbl.ForeColor = ThemeColors.TextBody;
+                    break;
+                case Panel pnl when pnl is not SectionCard:
+                    pnl.BackColor = ThemeColors.BgPage;
+                    break;
+            }
+        }
+    }
+
+    private static IEnumerable<Control> GetAllControls(Control parent)
+    {
+        foreach (Control c in parent.Controls)
+        {
+            yield return c;
+            foreach (var child in GetAllControls(c))
+                yield return child;
+        }
     }
 
     // ── OpenRouter ──
@@ -494,7 +585,7 @@ public sealed class SettingsForm : Form
     {
         if (string.IsNullOrWhiteSpace(_endpointBox.Text)) { MessageBox.Show(this, "API Endpoint URL is required.", "Validation", MessageBoxButtons.OK, MessageBoxIcon.Warning); _endpointBox.Focus(); return; }
         if (string.IsNullOrWhiteSpace(_modelBox.Text)) { MessageBox.Show(this, "Model Name is required.", "Validation", MessageBoxButtons.OK, MessageBoxIcon.Warning); _modelBox.Focus(); return; }
-        var profileName = (string)_profileBox.SelectedItem!; SaveFieldsToProfile(profileName); _config.ActiveProfile = profileName; _config.ShiftRightClickEnabled = _shiftRightClickBox.Checked; _config.StartWithWindows = _startWithWindowsBox.Checked; _config.Theme = (ThemeMode)_themeBox.SelectedIndex; _config.TranslationLanguages = _langListBox.Items.Cast<string>().ToList(); _config.Save(); ThemeColors.SetMode(_config.Theme); DialogResult = DialogResult.OK; Close();
+        var profileName = (string)_profileBox.SelectedItem!; SaveFieldsToProfile(profileName); _config.ActiveProfile = profileName; _config.StartWithWindows = _startWithWindowsBox.Checked; _config.Theme = (ThemeMode)_themeBox.SelectedIndex; _config.TranslationLanguages = _langListBox.Items.Cast<string>().ToList(); _config.Save(); ThemeColors.SetMode(_config.Theme); DialogResult = DialogResult.OK; Close();
     }
     private void LangAdd_Click(object? sender, EventArgs e) { var name = PromptForName("Add Language", "Language name:"); if (name == null) return; if (_langListBox.Items.Cast<string>().Any(l => l.Equals(name, StringComparison.OrdinalIgnoreCase))) { MessageBox.Show(this, $"\"{name}\" is already in the list.", "LLM-Rephraser", MessageBoxButtons.OK, MessageBoxIcon.Information); return; } _langListBox.Items.Add(name); }
     private void LangRemove_Click(object? sender, EventArgs e) { if (_langListBox.SelectedIndex >= 0) _langListBox.Items.RemoveAt(_langListBox.SelectedIndex); }

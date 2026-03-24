@@ -11,14 +11,12 @@ partial class ResultForm
     private TableLayoutPanel mainLayout;
     private Label lblOriginal;
     private Panel pnlOriginalRow;
-    private Panel pnlOriginalAccent;
     private RichTextBox rtbOriginal;
     private Panel pnlSpacer;
     private FlowLayoutPanel flpSuggLabels;
     private Label lblSuggestion;
     private Label lblHint;
     private Panel pnlSuggestionRow;
-    private Panel pnlSuggestionAccent;
     private RichTextBox rtbSuggestion;
     private Label lblCharCount;
     private Panel pnlSeparator;
@@ -85,14 +83,7 @@ partial class ResultForm
         mainLayout.Controls.Add(lblOriginal, 0, 0);
 
         // ─── Row 1: Original accent bar + RichTextBox ───────────────────
-        pnlOriginalAccent = new Panel
-        {
-            Width = 3,
-            BackColor = ColorTranslator.FromHtml("#555555"),
-            BorderStyle = BorderStyle.None,
-            Dock = DockStyle.Left
-        };
-
+        // Container BackColor = accent gray, Padding left 3px exposes it as a bar
         rtbOriginal = new RichTextBox
         {
             ReadOnly = true,
@@ -104,7 +95,7 @@ partial class ResultForm
             DetectUrls = false,
             TabStop = false,
             Dock = DockStyle.Fill,
-            Font = new Font("Segoe UI", 10f),
+            Font = new Font("Segoe UI", 12f),
             Margin = new Padding(0)
         };
 
@@ -112,10 +103,15 @@ partial class ResultForm
         {
             Dock = DockStyle.Fill,
             BackColor = ColorTranslator.FromHtml("#0e0e0e"),
+            Padding = new Padding(3, 0, 0, 0),
             Margin = new Padding(0)
         };
+        pnlOriginalRow.Paint += (_, e) =>
+        {
+            using var brush = new SolidBrush(ColorTranslator.FromHtml("#555555"));
+            e.Graphics.FillRectangle(brush, 0, 0, 3, pnlOriginalRow.Height);
+        };
         pnlOriginalRow.Controls.Add(rtbOriginal);
-        pnlOriginalRow.Controls.Add(pnlOriginalAccent);
         mainLayout.Controls.Add(pnlOriginalRow, 0, 1);
 
         // ─── Row 2: Spacer (16px) ──────────────────────────────────────
@@ -162,25 +158,19 @@ partial class ResultForm
         mainLayout.Controls.Add(flpSuggLabels, 0, 3);
 
         // ─── Row 4: Suggestion accent bar + RichTextBox ─────────────────
-        pnlSuggestionAccent = new Panel
-        {
-            Width = 3,
-            BackColor = ColorTranslator.FromHtml("#b8952a"),
-            BorderStyle = BorderStyle.None,
-            Dock = DockStyle.Left
-        };
-
+        // Container BackColor = gold, Padding left 3px exposes it as a bar
         rtbSuggestion = new RichTextBox
         {
             ReadOnly = false,
             BackColor = ColorTranslator.FromHtml("#161616"),
             ForeColor = ColorTranslator.FromHtml("#dddddd"),
-            BorderStyle = BorderStyle.FixedSingle,
+            SelectionBackColor = ColorTranslator.FromHtml("#161616"),
+            BorderStyle = BorderStyle.None,
             ScrollBars = RichTextBoxScrollBars.Vertical,
             WordWrap = true,
             DetectUrls = false,
             Dock = DockStyle.Fill,
-            Font = new Font("Segoe UI", 10f),
+            Font = new Font("Segoe UI", 12f),
             Margin = new Padding(0)
         };
 
@@ -188,10 +178,15 @@ partial class ResultForm
         {
             Dock = DockStyle.Fill,
             BackColor = ColorTranslator.FromHtml("#161616"),
+            Padding = new Padding(3, 0, 0, 0),
             Margin = new Padding(0)
         };
+        pnlSuggestionRow.Paint += (_, e) =>
+        {
+            using var brush = new SolidBrush(ColorTranslator.FromHtml("#b8952a"));
+            e.Graphics.FillRectangle(brush, 0, 0, 3, pnlSuggestionRow.Height);
+        };
         pnlSuggestionRow.Controls.Add(rtbSuggestion);
-        pnlSuggestionRow.Controls.Add(pnlSuggestionAccent);
         mainLayout.Controls.Add(pnlSuggestionRow, 0, 4);
 
         // ─── Row 5: Char count ──────────────────────────────────────────
@@ -225,7 +220,7 @@ partial class ResultForm
             AutoSize = true,
             WrapContents = false,
             BackColor = ColorTranslator.FromHtml("#1e1e1e"),
-            Margin = new Padding(0)
+            Margin = new Padding(0, 6, 0, 0)
         };
 
         btnAccept = new Button
@@ -253,7 +248,7 @@ partial class ResultForm
             Font = new Font("Segoe UI", 9.5f),
             Cursor = Cursors.Hand,
             DialogResult = DialogResult.Cancel,
-            Margin = new Padding(0, 0, 8, 0)
+            Margin = new Padding(0, 0, 10, 0)
         };
         btnCancel.FlatAppearance.BorderSize = 1;
         btnCancel.FlatAppearance.BorderColor = ColorTranslator.FromHtml("#444444");

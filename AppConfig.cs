@@ -24,7 +24,6 @@ public sealed class ProfileConfig
 public sealed class AppConfig
 {
     public string ActiveProfile { get; set; } = "Default";
-    public bool ShiftRightClickEnabled { get; set; } = false;
     public bool ContextMenuEnabled { get; set; } = false;
     public bool FloatingToolbarEnabled { get; set; } = true;
     public bool StartWithWindows { get; set; } = false;
