@@ -9,7 +9,7 @@
     <AssemblyName>LLM-Rephraser</AssemblyName>
     <RootNamespace>LlmRephraser</RootNamespace>
     <ApplicationIcon>app.ico</ApplicationIcon>
-    <Version>1.2.38</Version>
+    <Version>1.2.40</Version>
   </PropertyGroup>
 
   <ItemGroup>
