@@ -7,8 +7,6 @@ Supports **OpenAI**, **Anthropic Claude**, **Google Gemini**, **NVIDIA**, **Open
 ## Features
 
 - **Global hotkey** (`Ctrl+Shift+R`) — works across all Windows applications
-- **Auto-detect text selection** — select text in any app and the style picker appears automatically (Grammarly-style, configurable)
-- **Windows right-click menu** — optional "Rephrase with LLM-Rephraser" entry in the Windows Explorer/Desktop context menu
 - **Rephrasing styles** — Rephrase, Make Formal, Make Concise, Fix Grammar
 - **Translation** — translate and rephrase to any language (customizable list in settings)
 - **Editable suggestions** — review and tweak the AI suggestion before accepting
@@ -24,7 +22,7 @@ Supports **OpenAI**, **Anthropic Claude**, **Google Gemini**, **NVIDIA**, **Open
 ## How It Works
 
 ```
-Select text → style picker appears automatically (or use Ctrl+Shift+R) →
+Select text → press Ctrl+Shift+R →
 Choose a style → API returns suggestion →
 Review/edit in dialog → Accept: pastes replacement back | Cancel: nothing changes
 ```
@@ -117,8 +115,6 @@ Default languages: English, Hebrew, Arabic, Russian.
 
 | Option | Description |
 |---|---|
-| **Show floating toolbar on text selection** | Auto-show style picker when text is selected by dragging (on by default) |
-| **Add to Windows right-click menu** | Register "Rephrase with LLM-Rephraser" in Windows Explorer/Desktop context menu |
 | **Start with Windows** | Launch LLM-Rephraser automatically on Windows startup |
 
 ### Config File
@@ -148,6 +144,8 @@ LLM-Rephraser/
 ├── ResultForm.cs               # Original vs Suggested comparison dialog
 ├── HotkeyWindow.cs             # NativeWindow subclass for WM_HOTKEY
 ├── SelectionDetector.cs        # Detects text selection gestures (mouse drag)
+├── EditableFieldDetector.cs    # Detects if focused control is an editable text field
+├── ThemeColors.cs              # Centralized color palette for UI theming
 ├── ContextMenuHelper.cs        # Windows Explorer/Desktop context menu registration
 ├── rephrase-tool.ico           # Application icon (multi-size)
 ├── build-release.sh            # Build, version bump, package, commit & push
