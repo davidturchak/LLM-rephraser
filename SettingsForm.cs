@@ -270,7 +270,7 @@ public sealed class SettingsForm : Form
         var searchLabel = new Label { Text = "Search:", Location = new Point(innerPad, 90), Size = new Size(50, 17), TextAlign = ContentAlignment.MiddleLeft, ForeColor = ThemeColors.TextBody, BackColor = Color.Transparent };
         _orSearchBox = new TextBox { Location = new Point(68, 88), Size = new Size(200, 23) }; _orSearchBox.TextChanged += OrSearch_Changed;
 
-        _modelListView = new ListView { Location = new Point(innerPad, 118), Size = new Size(cardW - innerPad * 2, 264), View = View.Details, FullRowSelect = true, GridLines = true, MultiSelect = false, HideSelection = false, BorderStyle = BorderStyle.FixedSingle, Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right | AnchorStyles.Bottom };
+        _modelListView = new ListView { Location = new Point(innerPad, 118), Size = new Size(cardW - innerPad * 2, formH - 96 - 118 - 58), View = View.Details, FullRowSelect = true, GridLines = true, MultiSelect = false, HideSelection = false, BorderStyle = BorderStyle.FixedSingle, Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right | AnchorStyles.Bottom };
         _modelListView.Columns.Add("Model Name", 210); _modelListView.Columns.Add("ID", 160); _modelListView.Columns.Add("Context", 80, HorizontalAlignment.Right);
 
         int orCardH = formH - 96;
@@ -297,7 +297,7 @@ public sealed class SettingsForm : Form
         var gaiSearchLabel = new Label { Text = "Search:", Location = new Point(innerPad, 108), Size = new Size(50, 17), TextAlign = ContentAlignment.MiddleLeft, ForeColor = ThemeColors.TextBody, BackColor = Color.Transparent };
         _gaiSearchBox = new TextBox { Location = new Point(68, 106), Size = new Size(200, 23) }; _gaiSearchBox.TextChanged += GaiSearch_Changed;
 
-        _gaiModelListView = new ListView { Location = new Point(innerPad, 136), Size = new Size(cardW - innerPad * 2, 244), View = View.Details, FullRowSelect = true, GridLines = true, MultiSelect = false, HideSelection = false, BorderStyle = BorderStyle.FixedSingle, Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right | AnchorStyles.Bottom };
+        _gaiModelListView = new ListView { Location = new Point(innerPad, 136), Size = new Size(cardW - innerPad * 2, formH - 96 - 136 - 58), View = View.Details, FullRowSelect = true, GridLines = true, MultiSelect = false, HideSelection = false, BorderStyle = BorderStyle.FixedSingle, Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right | AnchorStyles.Bottom };
         _gaiModelListView.Columns.Add("Display Name", 190); _gaiModelListView.Columns.Add("Model ID", 170); _gaiModelListView.Columns.Add("Context", 80, HorizontalAlignment.Right);
 
         int gaiCardH = formH - 96;
@@ -322,7 +322,7 @@ public sealed class SettingsForm : Form
         var nvSearchLabel = new Label { Text = "Search:", Location = new Point(innerPad, 90), Size = new Size(50, 17), TextAlign = ContentAlignment.MiddleLeft, ForeColor = ThemeColors.TextBody, BackColor = Color.Transparent };
         _nvSearchBox = new TextBox { Location = new Point(68, 88), Size = new Size(200, 23) }; _nvSearchBox.TextChanged += NvSearch_Changed;
 
-        _nvModelListView = new ListView { Location = new Point(innerPad, 118), Size = new Size(cardW - innerPad * 2, 264), View = View.Details, FullRowSelect = true, GridLines = true, MultiSelect = false, HideSelection = false, BorderStyle = BorderStyle.FixedSingle, Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right | AnchorStyles.Bottom };
+        _nvModelListView = new ListView { Location = new Point(innerPad, 118), Size = new Size(cardW - innerPad * 2, formH - 96 - 118 - 58), View = View.Details, FullRowSelect = true, GridLines = true, MultiSelect = false, HideSelection = false, BorderStyle = BorderStyle.FixedSingle, Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right | AnchorStyles.Bottom };
         _nvModelListView.Columns.Add("Model ID", 290); _nvModelListView.Columns.Add("Owner", 160);
 
         int nvCardH = formH - 96;
@@ -349,7 +349,7 @@ public sealed class SettingsForm : Form
         var claudeSearchLabel = new Label { Text = "Search:", Location = new Point(innerPad, 108), Size = new Size(50, 17), TextAlign = ContentAlignment.MiddleLeft, ForeColor = ThemeColors.TextBody, BackColor = Color.Transparent };
         _claudeSearchBox = new TextBox { Location = new Point(68, 106), Size = new Size(200, 23) }; _claudeSearchBox.TextChanged += ClaudeSearch_Changed;
 
-        _claudeModelListView = new ListView { Location = new Point(innerPad, 136), Size = new Size(cardW - innerPad * 2, 244), View = View.Details, FullRowSelect = true, GridLines = true, MultiSelect = false, HideSelection = false, BorderStyle = BorderStyle.FixedSingle, Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right | AnchorStyles.Bottom };
+        _claudeModelListView = new ListView { Location = new Point(innerPad, 136), Size = new Size(cardW - innerPad * 2, formH - 96 - 136 - 58), View = View.Details, FullRowSelect = true, GridLines = true, MultiSelect = false, HideSelection = false, BorderStyle = BorderStyle.FixedSingle, Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right | AnchorStyles.Bottom };
         _claudeModelListView.Columns.Add("Display Name", 190); _claudeModelListView.Columns.Add("Model ID", 170); _claudeModelListView.Columns.Add("Context", 80, HorizontalAlignment.Right);
 
         int claudeCardH = formH - 96;
