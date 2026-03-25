@@ -19,6 +19,17 @@ Supports **OpenAI**, **Anthropic Claude**, **Google Gemini**, **NVIDIA**, **Open
 - **Syncfusion UI** — modern, DPI-aware interface with adaptive layout for all screen resolutions
 - **Single instance** — mutex-protected, only one instance runs at a time
 
+## Demo
+
+### Rephrase
+![Rephrase demo](rephrase.gif)
+
+### Translation
+![Translation demo](translation.gif)
+
+### Settings
+![Settings demo](settings.gif)
+
 ## How It Works
 
 ```
