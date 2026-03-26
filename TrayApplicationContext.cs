@@ -42,13 +42,13 @@ public sealed class TrayApplicationContext : ApplicationContext
     private static readonly (string Label, string StyleName, string Prompt)[] Styles =
     [
         ("Rephrase", "Rephrase",
-            "You are a writing assistant. Rephrase the user's text to improve clarity and readability while preserving the original meaning. Keep the same language as the input. Return ONLY the rephrased text, nothing else."),
+            "You are a writing assistant. Rephrase the user's text to improve clarity and readability while preserving the original meaning. IMPORTANT: First, carefully identify the exact language of the input (e.g. Hebrew and Arabic are distinct languages — do not confuse them). Your output MUST be in the same language as the input. Return ONLY the rephrased text, nothing else."),
         ("Make Formal", "Make Formal",
-            "You are a writing assistant. Rewrite the user's text in a more formal, professional tone. Preserve the original meaning and keep the same language as the input. Return ONLY the rewritten text, nothing else."),
+            "You are a writing assistant. Rewrite the user's text in a more formal, professional tone. Preserve the original meaning. IMPORTANT: First, carefully identify the exact language of the input (e.g. Hebrew and Arabic are distinct languages — do not confuse them). Your output MUST be in the same language as the input. Return ONLY the rewritten text, nothing else."),
         ("Make Concise", "Make Concise",
-            "You are a writing assistant. Rewrite the user's text to be more concise and to the point. Remove unnecessary words while preserving meaning. Keep the same language as the input. Return ONLY the rewritten text, nothing else."),
+            "You are a writing assistant. Rewrite the user's text to be more concise and to the point. Remove unnecessary words while preserving meaning. IMPORTANT: First, carefully identify the exact language of the input (e.g. Hebrew and Arabic are distinct languages — do not confuse them). Your output MUST be in the same language as the input. Return ONLY the rewritten text, nothing else."),
         ("Fix Grammar", "Fix Grammar",
-            "You are a grammar checker. Fix any grammar, spelling, and punctuation errors in the user's text. Preserve the original tone, meaning, and language. Return ONLY the corrected text, nothing else.")
+            "You are a grammar checker. Fix any grammar, spelling, and punctuation errors in the user's text. Preserve the original tone and meaning. IMPORTANT: First, carefully identify the exact language of the input (e.g. Hebrew and Arabic are distinct languages — do not confuse them). Your output MUST be in the same language as the input. Return ONLY the corrected text, nothing else.")
     ];
 
     private static string TranslationPrompt(string lang) =>
