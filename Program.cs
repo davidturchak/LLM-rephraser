@@ -14,7 +14,7 @@ static class Program
     static void Main(string[] args)
     {
         // Register Syncfusion license
-        Syncfusion.Licensing.SyncfusionLicenseProvider.RegisterLicense("Ngo9BigBOggjHTQxAR8/V1JHaF5cWWdCfUx1RXxbf1x2ZF1MZFlbR3BPMyBoS35RcEVgW3xeeHBQRWZeUkB+VEFe");
+        Syncfusion.Licensing.SyncfusionLicenseProvider.RegisterLicense("Ngo9BigBOggjHTQxAR8/V1JHaF5cWWdCf1FpRmJGdld5fUVHYVZUTXxaS00DNHVRdkdlWXtfdHRQRWRYUEZ2WkpWYEo=");
 
         using var mutex = new Mutex(true, MutexName, out bool createdNew);
 
