@@ -35,6 +35,14 @@ public sealed partial class ResultForm : Form
         // ── Form title ──────────────────────────────────────────────────
         Text = $"LLM-Rephraser \u2014 {styleName}";
 
+        // Force-to-front: long async API wait before this dialog appears
+        // means Windows often denies foreground. TopMost guarantees
+        // visibility; we drop it after Shown so the dialog behaves
+        // normally afterwards (alt-tab, click-through, etc.).
+        StartPosition = FormStartPosition.CenterScreen;
+        TopMost = true;
+        ShowInTaskbar = true;
+
         // ── DPI / screen metrics ────────────────────────────────────────
         var workArea = Screen.FromPoint(Cursor.Position).WorkingArea;
         float dpiScale;
@@ -73,7 +81,15 @@ public sealed partial class ResultForm : Form
         btnCancel.Click += (_, _) => Close();
 
         Load += ResultForm_Load;
-        Shown += (_, _) => rtbSuggestion.Focus();
+        Shown += (_, _) =>
+        {
+            // We are now visible on top; demote out of always-on-top so the
+            // user can alt-tab or click other windows over us normally.
+            Activate();
+            BringToFront();
+            TopMost = false;
+            rtbSuggestion.Focus();
+        };
     }
 
     // ── Form_Load ────────────────────────────────────────────────────────

@@ -483,9 +483,18 @@ public sealed class TrayApplicationContext : ApplicationContext
             return;
         }
 
-        // Show result dialog
+        // Show result dialog. Use the same helper-form foreground trick we
+        // use for the style menu — after a long API wait, Windows often
+        // denies foreground rights so the dialog ends up flashing in the
+        // taskbar instead of appearing on top.
+        var pos = Cursor.Position;
+        _helperForm.Location = new Point(pos.X - 1, pos.Y - 1);
+        _helperForm.Show();
+        SetForegroundWindow(_helperForm.Handle);
+
         using var resultForm = new ResultForm(styleName, selectedText, suggestion, isEditable);
-        resultForm.ShowDialog();
+        resultForm.ShowDialog(_helperForm);
+        _helperForm.Hide();
 
         if (resultForm.Accepted)
         {
