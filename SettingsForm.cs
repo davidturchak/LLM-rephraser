@@ -70,6 +70,18 @@ public sealed class SettingsForm : Form
     private List<ClaudeModel> _allClaudeModels = [];
     private List<ClaudeModel> _filteredClaudeModels = [];
 
+    // ── DeepSeek tab fields ──
+    private readonly ListView _dsModelListView;
+    private readonly Button _dsFetchButton;
+    private readonly Button _dsCreateProfileButton;
+    private readonly Label _dsStatusLabel;
+    private readonly TextBox _dsSearchBox;
+    private readonly TextBox _dsApiKeyBox;
+    private readonly CheckBox _dsShowKeyBox;
+    private string _dsLastErrorBody = "";
+    private List<DeepSeekModel> _allDsModels = [];
+    private List<DeepSeekModel> _filteredDsModels = [];
+
     private readonly Button _saveButton;
     private readonly Button _cancelButton;
     private readonly TabControlAdv _tabControl;
@@ -373,8 +385,41 @@ public sealed class SettingsForm : Form
         claudeBottomPanel.Controls.AddRange([_claudeCreateProfileButton, claudeKeyLink]);
         claudeTab.Controls.AddRange([claudeCard, claudeBottomPanel]);
 
+        // ═══ TAB 6: DeepSeek ═══
+        var dsTab = new TabPageAdv("DeepSeek") { BackColor = ThemeColors.BgPage, Padding = new Padding(4, 4, 4, 0) };
+        var dsCard = new SectionCard { Dock = DockStyle.Fill };
+        var dsSectionLabel = MakeSectionLabel("BROWSE DEEPSEEK MODELS"); dsSectionLabel.Location = new Point(innerPad, 10);
+        var dsDescription = new Label { Text = "Browse models from DeepSeek and create a profile with one click.", Location = new Point(innerPad, 28), Size = new Size(cardW - innerPad * 2, 18), ForeColor = ThemeColors.TextMuted, Font = new Font("Segoe UI", 8f), BackColor = Color.Transparent, Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right };
+
+        var dsKeyLabel = new Label { Text = "API Key:", Location = new Point(innerPad, 56), Size = new Size(55, 17), TextAlign = ContentAlignment.MiddleLeft, ForeColor = ThemeColors.TextBody, BackColor = Color.Transparent };
+        const int dsShowW = 60;
+        _dsApiKeyBox = new TextBox { Location = new Point(73, 54), Size = new Size(cardW - 73 - 100 - innerPad - 8 - dsShowW - 4, 23), UseSystemPasswordChar = true };
+        _dsShowKeyBox = new CheckBox { Text = "Show", Location = new Point(_dsApiKeyBox.Right + 4, 55), Size = new Size(dsShowW, 21), ForeColor = ThemeColors.TextBody, BackColor = Color.Transparent, FlatStyle = FlatStyle.Standard };
+        _dsShowKeyBox.CheckedChanged += (_, _) => _dsApiKeyBox.UseSystemPasswordChar = !_dsShowKeyBox.Checked;
+        _dsFetchButton = MakeSecondary("Fetch Models", 100, 27); _dsFetchButton.Location = new Point(cardW - innerPad - 100, 53); _dsFetchButton.Click += DeepSeekFetchModels_Click;
+        _dsStatusLabel = new Label { Text = "", Location = new Point(innerPad, 84), Size = new Size(cardW - innerPad * 2, 17), TextAlign = ContentAlignment.MiddleLeft, BackColor = Color.Transparent, Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right, Cursor = Cursors.Hand };
+        _dsStatusLabel.Click += (_, _) => { if (!string.IsNullOrEmpty(_dsLastErrorBody)) ShowDeepSeekErrorDialog(); };
+
+        var dsSearchLabel = new Label { Text = "Search:", Location = new Point(innerPad, 108), Size = new Size(50, 17), TextAlign = ContentAlignment.MiddleLeft, ForeColor = ThemeColors.TextBody, BackColor = Color.Transparent };
+        _dsSearchBox = new TextBox { Location = new Point(68, 106), Size = new Size(200, 23) }; _dsSearchBox.TextChanged += DsSearch_Changed;
+
+        _dsModelListView = new ListView { Location = new Point(innerPad, 136), Size = new Size(cardW - innerPad * 2, formH - 136 - 136 - 8), View = View.Details, FullRowSelect = true, GridLines = true, MultiSelect = false, HideSelection = false, BorderStyle = BorderStyle.FixedSingle, Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right | AnchorStyles.Bottom };
+        _dsModelListView.Columns.Add("Model ID", 280); _dsModelListView.Columns.Add("Owned By", 160);
+
+        dsCard.Controls.AddRange([dsSectionLabel, dsDescription, dsKeyLabel, _dsApiKeyBox, _dsShowKeyBox, _dsFetchButton, _dsStatusLabel, dsSearchLabel, _dsSearchBox, _dsModelListView]);
+
+        _dsCreateProfileButton = MakePrimary("Create Profile from Selected", 210, 30); _dsCreateProfileButton.Location = new Point(innerPad, 3); _dsCreateProfileButton.Enabled = false; _dsCreateProfileButton.Click += DeepSeekCreateProfile_Click;
+        _dsModelListView.SelectedIndexChanged += (_, _) => _dsCreateProfileButton.Enabled = _dsModelListView.SelectedItems.Count > 0;
+
+        var dsKeyLink = new LinkLabel { Text = "Get your DeepSeek API key", Location = new Point(230, 9), AutoSize = true, LinkColor = ThemeColors.Accent, ActiveLinkColor = ThemeColors.AccentHover, BackColor = Color.Transparent };
+        dsKeyLink.LinkClicked += (_, _) => System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo { FileName = "https://platform.deepseek.com/api_keys", UseShellExecute = true });
+
+        var dsBottomPanel = new Panel { Dock = DockStyle.Bottom, Height = 36, BackColor = ThemeColors.BgPage };
+        dsBottomPanel.Controls.AddRange([_dsCreateProfileButton, dsKeyLink]);
+        dsTab.Controls.AddRange([dsCard, dsBottomPanel]);
+
         // Assemble
-        _tabControl.Controls.Add(settingsTab); _tabControl.Controls.Add(openRouterTab); _tabControl.Controls.Add(gaiTab); _tabControl.Controls.Add(nvTab); _tabControl.Controls.Add(claudeTab);
+        _tabControl.Controls.Add(settingsTab); _tabControl.Controls.Add(openRouterTab); _tabControl.Controls.Add(gaiTab); _tabControl.Controls.Add(nvTab); _tabControl.Controls.Add(claudeTab); _tabControl.Controls.Add(dsTab);
 
         _saveButton = MakePrimary("OK", 80, 30); _saveButton.Location = new Point(formW - 168, formH - 36); _saveButton.Anchor = AnchorStyles.Bottom | AnchorStyles.Right; _saveButton.Click += SaveButton_Click;
         _cancelButton = MakeSecondary("Cancel", 80, 30); _cancelButton.Location = new Point(formW - 84, formH - 36); _cancelButton.Anchor = AnchorStyles.Bottom | AnchorStyles.Right; _cancelButton.Click += (_, _) => { DialogResult = DialogResult.Cancel; Close(); };
@@ -563,6 +608,84 @@ public sealed class SettingsForm : Form
     private void ClaudeSearch_Changed(object? sender, EventArgs e) { var q = _claudeSearchBox.Text.Trim(); _filteredClaudeModels = string.IsNullOrEmpty(q) ? _allClaudeModels : _allClaudeModels.Where(m => m.DisplayName.Contains(q, StringComparison.OrdinalIgnoreCase) || m.Id.Contains(q, StringComparison.OrdinalIgnoreCase)).ToList(); PopulateClaudeModelList(); }
     private void PopulateClaudeModelList() { _claudeModelListView.BeginUpdate(); _claudeModelListView.Items.Clear(); foreach (var m in _filteredClaudeModels) { var item = new ListViewItem(m.DisplayName); item.SubItems.Add(m.Id); item.SubItems.Add(m.MaxInputTokens > 0 ? $"{m.MaxInputTokens:N0}" : "\u2014"); item.Tag = m; _claudeModelListView.Items.Add(item); } _claudeModelListView.EndUpdate(); _claudeCreateProfileButton.Enabled = false; }
     private void ClaudeCreateProfile_Click(object? sender, EventArgs e) { if (_claudeModelListView.SelectedItems.Count == 0) return; var model = (ClaudeModel)_claudeModelListView.SelectedItems[0].Tag!; var profileName = $"Claude - {model.DisplayName}"; if (_config.Profiles.ContainsKey(profileName) && MessageBox.Show(this, $"Profile \"{profileName}\" already exists. Overwrite?", "LLM-Rephraser", MessageBoxButtons.YesNo, MessageBoxIcon.Question) != DialogResult.Yes) return; if (_profileBox.SelectedItem != null) SaveFieldsToProfile((string)_profileBox.SelectedItem); _config.Profiles[profileName] = new ProfileConfig { Provider = ApiProvider.Anthropic, ApiEndpoint = "https://api.anthropic.com/v1/messages", ApiKey = _claudeApiKeyBox.Text.Trim(), ModelName = model.Id }; RefreshProfileList(profileName); MessageBox.Show(this, $"Profile \"{profileName}\" created.", "Profile Created", MessageBoxButtons.OK, MessageBoxIcon.Information); }
+
+    // ── DeepSeek ──
+    private sealed class DeepSeekModel { public string Id { get; set; } = ""; public string OwnedBy { get; set; } = ""; }
+    private static string SanitizeApiKey(string raw) => new string(raw.Where(c => c >= 0x21 && c <= 0x7E).ToArray());
+    private static string KeyFingerprint(string k) =>
+        k.Length <= 8 ? $"len={k.Length}" : $"len={k.Length} {k[..4]}…{k[^4..]}";
+
+    private async void DeepSeekFetchModels_Click(object? sender, EventArgs e)
+    {
+        var raw = _dsApiKeyBox.Text;
+        var apiKey = SanitizeApiKey(raw);
+        if (string.IsNullOrWhiteSpace(apiKey)) { _dsStatusLabel.ForeColor = ThemeColors.Error; _dsStatusLabel.Text = "API key is required to fetch models."; return; }
+        if (raw.Length != apiKey.Length)
+            AppLogger.LogError("DeepSeek fetch", $"Key sanitized: raw len={raw.Length} clean len={apiKey.Length}", TimeSpan.Zero);
+
+        _dsLastErrorBody = "";
+        _dsFetchButton.Enabled = false; _dsFetchButton.Text = "Fetching..."; _dsStatusLabel.ForeColor = SystemColors.GrayText; _dsStatusLabel.Text = $"Downloading model list... ({KeyFingerprint(apiKey)})"; _dsModelListView.Items.Clear(); _allDsModels.Clear();
+        try
+        {
+            using var http = new HttpClient { Timeout = TimeSpan.FromSeconds(30) };
+            http.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", apiKey);
+            var resp = await http.GetAsync("https://api.deepseek.com/models");
+            var body = await resp.Content.ReadAsStringAsync();
+            if (!resp.IsSuccessStatusCode)
+            {
+                _dsLastErrorBody = $"HTTP {(int)resp.StatusCode} {resp.StatusCode}\nKey: {KeyFingerprint(apiKey)}\n\n{body}";
+                AppLogger.LogError("DeepSeek fetch", $"HTTP {(int)resp.StatusCode} key={KeyFingerprint(apiKey)} body={body}", TimeSpan.Zero);
+                _dsStatusLabel.ForeColor = ThemeColors.Error;
+                var snippet = body.Length > 160 ? body[..160] : body;
+                _dsStatusLabel.Text = $"HTTP {(int)resp.StatusCode} ({KeyFingerprint(apiKey)}) — click for details. {snippet}";
+                return;
+            }
+            using var doc = JsonDocument.Parse(body);
+            foreach (var model in doc.RootElement.GetProperty("data").EnumerateArray())
+                _allDsModels.Add(new DeepSeekModel { Id = model.GetProperty("id").GetString() ?? "", OwnedBy = model.TryGetProperty("owned_by", out var ob) ? ob.GetString() ?? "" : "" });
+            _allDsModels = _allDsModels.OrderBy(m => m.Id).ToList(); _filteredDsModels = _allDsModels; PopulateDsModelList();
+            _dsStatusLabel.ForeColor = ThemeColors.Success; _dsStatusLabel.Text = $"Found {_allDsModels.Count} models.";
+        }
+        catch (Exception ex) { _dsLastErrorBody = ex.ToString(); _dsStatusLabel.ForeColor = ThemeColors.Error; _dsStatusLabel.Text = ex.Message.Length > 70 ? ex.Message[..67] + "..." : ex.Message; }
+        finally { _dsFetchButton.Enabled = true; _dsFetchButton.Text = "Fetch Models"; }
+    }
+
+    private void ShowDeepSeekErrorDialog()
+    {
+        using var dlg = new Form
+        {
+            Text = "DeepSeek — Fetch Error Details",
+            ClientSize = new Size(620, 380),
+            StartPosition = FormStartPosition.CenterParent,
+            BackColor = ThemeColors.BgPage,
+            MinimizeBox = false,
+            MaximizeBox = false,
+            ShowInTaskbar = false
+        };
+        var box = new TextBox
+        {
+            Multiline = true,
+            ReadOnly = true,
+            ScrollBars = ScrollBars.Both,
+            WordWrap = false,
+            Font = new Font("Consolas", 9f),
+            Dock = DockStyle.Fill,
+            BackColor = ThemeColors.BgInput,
+            ForeColor = ThemeColors.TextInput,
+            Text = _dsLastErrorBody
+        };
+        var bottom = new Panel { Dock = DockStyle.Bottom, Height = 40, BackColor = ThemeColors.BgPage };
+        var copyBtn = MakeSecondary("Copy", 80, 28); copyBtn.Location = new Point(440, 6);
+        copyBtn.Click += (_, _) => { try { Clipboard.SetText(_dsLastErrorBody); copyBtn.Text = "Copied"; } catch { } };
+        var closeBtn = MakePrimary("Close", 80, 28); closeBtn.Location = new Point(528, 6); closeBtn.DialogResult = DialogResult.OK;
+        bottom.Controls.AddRange([copyBtn, closeBtn]);
+        dlg.Controls.AddRange([box, bottom]);
+        dlg.AcceptButton = closeBtn;
+        dlg.ShowDialog(this);
+    }
+    private void DsSearch_Changed(object? sender, EventArgs e) { var q = _dsSearchBox.Text.Trim(); _filteredDsModels = string.IsNullOrEmpty(q) ? _allDsModels : _allDsModels.Where(m => m.Id.Contains(q, StringComparison.OrdinalIgnoreCase) || m.OwnedBy.Contains(q, StringComparison.OrdinalIgnoreCase)).ToList(); PopulateDsModelList(); }
+    private void PopulateDsModelList() { _dsModelListView.BeginUpdate(); _dsModelListView.Items.Clear(); foreach (var m in _filteredDsModels) { var item = new ListViewItem(m.Id); item.SubItems.Add(m.OwnedBy); item.Tag = m; _dsModelListView.Items.Add(item); } _dsModelListView.EndUpdate(); _dsCreateProfileButton.Enabled = false; }
+    private void DeepSeekCreateProfile_Click(object? sender, EventArgs e) { if (_dsModelListView.SelectedItems.Count == 0) return; var model = (DeepSeekModel)_dsModelListView.SelectedItems[0].Tag!; var profileName = $"DeepSeek - {model.Id}"; if (_config.Profiles.ContainsKey(profileName) && MessageBox.Show(this, $"Profile \"{profileName}\" already exists. Overwrite?", "LLM-Rephraser", MessageBoxButtons.YesNo, MessageBoxIcon.Question) != DialogResult.Yes) return; if (_profileBox.SelectedItem != null) SaveFieldsToProfile((string)_profileBox.SelectedItem); _config.Profiles[profileName] = new ProfileConfig { Provider = ApiProvider.OpenAICompatible, ApiEndpoint = "https://api.deepseek.com/v1/chat/completions", ApiKey = SanitizeApiKey(_dsApiKeyBox.Text), ModelName = model.Id }; RefreshProfileList(profileName); MessageBox.Show(this, $"Profile \"{profileName}\" created.", "Profile Created", MessageBoxButtons.OK, MessageBoxIcon.Information); }
 
     // ── Settings tab methods ──
     private void RefreshProfileList(string selectName) { _suppressProfileSwitch = true; _profileBox.Items.Clear(); foreach (var name in _config.Profiles.Keys.OrderBy(k => k)) _profileBox.Items.Add(name); var idx = _profileBox.Items.IndexOf(selectName); _profileBox.SelectedIndex = idx >= 0 ? idx : 0; _suppressProfileSwitch = false; LoadProfileIntoFields((string)_profileBox.SelectedItem!); _deleteButton.Enabled = _config.Profiles.Count > 1; }
