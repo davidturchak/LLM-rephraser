@@ -97,7 +97,7 @@ public sealed class TrayApplicationContext : ApplicationContext
         _trayIcon = new NotifyIcon
         {
             Icon = CreateTrayIcon(),
-            Text = "LLM-Rephraser — Ctrl+Shift+R",
+            Text = "LLM-Rephraser — Ctrl+Shift+F",
             Visible = true,
             ContextMenuStrip = BuildTrayMenu()
         };
@@ -108,7 +108,7 @@ public sealed class TrayApplicationContext : ApplicationContext
         if (!_hotkeyWindow.Register())
         {
             MessageBox.Show(
-                "Failed to register global hotkey Ctrl+Shift+R.\nAnother application may be using it.",
+                "Failed to register global hotkey Ctrl+Shift+F.\nAnother application may be using it.",
                 "LLM-Rephraser",
                 MessageBoxButtons.OK,
                 MessageBoxIcon.Warning);

@@ -6,7 +6,7 @@ Supports **OpenAI**, **Anthropic Claude**, **Google Gemini**, **NVIDIA**, **Open
 
 ## Features
 
-- **Global hotkey** (`Ctrl+Shift+R`) — works across all Windows applications
+- **Global hotkey** (`Ctrl+Shift+F`) — works across all Windows applications
 - **Rephrasing styles** — Rephrase, Make Formal, Make Concise, Fix Grammar
 - **Translation** — translate and rephrase to any language (customizable list in settings)
 - **Editable suggestions** — review and tweak the AI suggestion before accepting
@@ -33,7 +33,7 @@ Supports **OpenAI**, **Anthropic Claude**, **Google Gemini**, **NVIDIA**, **Open
 ## How It Works
 
 ```
-Select text → press Ctrl+Shift+R →
+Select text → press Ctrl+Shift+F →
 Choose a style → API returns suggestion →
 Review/edit in dialog → Accept: pastes replacement back | Cancel: nothing changes
 ```

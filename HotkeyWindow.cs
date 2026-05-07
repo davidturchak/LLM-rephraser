@@ -29,8 +29,8 @@ public sealed class HotkeyWindow : NativeWindow, IDisposable
 
     public bool Register()
     {
-        // Ctrl+Shift+R
-        return RegisterHotKey(Handle, HOTKEY_ID, MOD_CONTROL | MOD_SHIFT | MOD_NOREPEAT, (uint)Keys.R);
+        // Ctrl+Shift+F
+        return RegisterHotKey(Handle, HOTKEY_ID, MOD_CONTROL | MOD_SHIFT | MOD_NOREPEAT, (uint)Keys.F);
     }
 
     protected override void WndProc(ref Message m)
