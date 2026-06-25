@@ -39,20 +39,50 @@ public sealed class TrayApplicationContext : ApplicationContext
     private CancellationTokenSource? _cts;
     private bool _isBusy;
 
+    // Appended to every prompt. When the selection is gibberish or lacks the
+    // context needed to process, we want the model to stay silent rather than
+    // explain that it can't help — an empty reply is detected downstream and we
+    // simply abort instead of showing a useless dialog.
+    private const string EmptyOnUnclear =
+        " If the input is gibberish, unintelligible, or lacks enough context to process meaningfully, output NOTHING AT ALL — return a completely empty response with no words, no explanation, and no apology.";
+
     private static readonly (string Label, string StyleName, string Prompt)[] Styles =
     [
         ("Rephrase", "Rephrase",
-            "You are a writing assistant. Rephrase the user's text to improve clarity and readability while preserving the original meaning. IMPORTANT: First, carefully identify the exact language of the input (e.g. Hebrew and Arabic are distinct languages — do not confuse them). Your output MUST be in the same language as the input. Return ONLY the rephrased text, nothing else."),
+            "You are a writing assistant. Rephrase the user's text to improve clarity and readability while preserving the original meaning. IMPORTANT: First, carefully identify the exact language of the input (e.g. Hebrew and Arabic are distinct languages — do not confuse them). Your output MUST be in the same language as the input. Return ONLY the rephrased text, nothing else." + EmptyOnUnclear),
         ("Make Formal", "Make Formal",
-            "You are a writing assistant. Rewrite the user's text in a more formal, professional tone. Preserve the original meaning. IMPORTANT: First, carefully identify the exact language of the input (e.g. Hebrew and Arabic are distinct languages — do not confuse them). Your output MUST be in the same language as the input. Return ONLY the rewritten text, nothing else."),
+            "You are a writing assistant. Rewrite the user's text in a more formal, professional tone. Preserve the original meaning. IMPORTANT: First, carefully identify the exact language of the input (e.g. Hebrew and Arabic are distinct languages — do not confuse them). Your output MUST be in the same language as the input. Return ONLY the rewritten text, nothing else." + EmptyOnUnclear),
         ("Make Concise", "Make Concise",
-            "You are a writing assistant. Rewrite the user's text to be more concise and to the point. Remove unnecessary words while preserving meaning. IMPORTANT: First, carefully identify the exact language of the input (e.g. Hebrew and Arabic are distinct languages — do not confuse them). Your output MUST be in the same language as the input. Return ONLY the rewritten text, nothing else."),
+            "You are a writing assistant. Rewrite the user's text to be more concise and to the point. Remove unnecessary words while preserving meaning. IMPORTANT: First, carefully identify the exact language of the input (e.g. Hebrew and Arabic are distinct languages — do not confuse them). Your output MUST be in the same language as the input. Return ONLY the rewritten text, nothing else." + EmptyOnUnclear),
         ("Fix Grammar", "Fix Grammar",
-            "You are a grammar checker. Fix any grammar, spelling, and punctuation errors in the user's text. Preserve the original tone and meaning. IMPORTANT: First, carefully identify the exact language of the input (e.g. Hebrew and Arabic are distinct languages — do not confuse them). Your output MUST be in the same language as the input. Return ONLY the corrected text, nothing else.")
+            "You are a grammar checker. Fix any grammar, spelling, and punctuation errors in the user's text. Preserve the original tone and meaning. IMPORTANT: First, carefully identify the exact language of the input (e.g. Hebrew and Arabic are distinct languages — do not confuse them). Your output MUST be in the same language as the input. Return ONLY the corrected text, nothing else." + EmptyOnUnclear)
     ];
 
     private static string TranslationPrompt(string lang) =>
-        $"You are a writing assistant and translator. Translate the user's text into {lang}, and rephrase it to sound natural and fluent in {lang} — not like a literal translation. Preserve the original meaning and tone. Return ONLY the translated and rephrased text, nothing else.";
+        $"You are a writing assistant and translator. Translate the user's text into {lang}, and rephrase it to sound natural and fluent in {lang} — not like a literal translation. Preserve the original meaning and tone. Return ONLY the translated and rephrased text, nothing else." + EmptyOnUnclear;
+
+    // Heuristic backstop for when the model ignores EmptyOnUnclear and instead
+    // returns a "not enough context" explanation. A genuine rephrase/translate
+    // of a short selection stays roughly proportional in length; a few words in
+    // that balloon into a long block out is almost always a refusal speech.
+    private const int FewWordsThreshold = 6;    // "a few words" — only short selections are checked
+    private const int RamblingMultiplier = 4;   // output more than this × the input is suspect...
+    private const int RamblingFloorWords = 12;  // ...but only once the output is at least this long
+
+    private static int WordCount(string? text) =>
+        string.IsNullOrWhiteSpace(text)
+            ? 0
+            : text.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries).Length;
+
+    private static bool LooksLikeRambling(string input, string suggestion)
+    {
+        int inWords = WordCount(input);
+        int outWords = WordCount(suggestion);
+        return inWords > 0
+            && inWords <= FewWordsThreshold
+            && outWords >= RamblingFloorWords
+            && outWords > inWords * RamblingMultiplier;
+    }
 
     public TrayApplicationContext()
     {
@@ -478,6 +508,21 @@ public sealed class TrayApplicationContext : ApplicationContext
             sw.Stop();
             AppLogger.LogError(styleName, ex.Message, sw.Elapsed);
             MessageBox.Show($"Unexpected error:\n{ex.Message}", "LLM-Rephraser", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            RestoreClipboard(savedClipboard);
+            _isBusy = false;
+            return;
+        }
+
+        // Suppress non-suggestions: either the model returned nothing (it
+        // judged the selection gibberish, per EmptyOnUnclear) or it ignored
+        // that instruction and rambled — a few words in, a long block out
+        // (LooksLikeRambling). Either way, don't show a useless dialog; just
+        // restore the clipboard and let the user know nothing came back.
+        if (string.IsNullOrWhiteSpace(suggestion) || LooksLikeRambling(selectedText, suggestion))
+        {
+            AppLogger.LogError(styleName, "Suppressed unclear/rambling response", sw.Elapsed);
+            _trayIcon.ShowBalloonTip(2000, "LLM-Rephraser",
+                "No suggestion — the selected text could not be understood.", ToolTipIcon.Info);
             RestoreClipboard(savedClipboard);
             _isBusy = false;
             return;
